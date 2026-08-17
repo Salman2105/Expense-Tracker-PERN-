@@ -1,4 +1,5 @@
 const express = require("express");
+// const validateSettings = require("../validators/settings.validator");
 
 const {
   getMySettings,

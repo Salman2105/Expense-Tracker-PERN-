@@ -8,11 +8,11 @@ const getUserSettings = async (userId) => {
   });
 };
 
-const createUserSettings = async (userId, data) => {
+const createUserSettings = async (userId, data = {}) => {
   return await prisma.userSettings.create({
     data: {
       userId,
-      theme: data.theme,
+      theme: data.theme || "SYSTEM",
       preferredCurrency: data.preferredCurrency || "USD",
       language: data.language || "en",
     },
@@ -23,7 +23,13 @@ const updateUserSettings = async (userId, data) => {
   const updateData = {};
 
   if (data.theme !== undefined) {
-    updateData.theme = data.theme;
+    const theme = String(data.theme).trim().toUpperCase();
+
+    if (!["LIGHT", "DARK", "SYSTEM"].includes(theme)) {
+      throw new Error("Invalid theme value. Allowed values: LIGHT, DARK, SYSTEM");
+    }
+
+    updateData.theme = theme;
   }
 
   if (data.preferredCurrency !== undefined) {
@@ -32,6 +38,14 @@ const updateUserSettings = async (userId, data) => {
 
   if (data.language !== undefined) {
     updateData.language = data.language;
+  }
+
+  if (data.emailNotifications !== undefined) {
+    updateData.emailNotifications = Boolean(data.emailNotifications);
+  }
+
+  if (data.budgetAlerts !== undefined) {
+    updateData.budgetAlerts = Boolean(data.budgetAlerts);
   }
 
   return await prisma.userSettings.update({

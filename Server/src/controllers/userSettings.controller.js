@@ -4,12 +4,13 @@ const getMySettings = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const settings = await userSettingsService.getUserSettings(userId);
+    let settings = await userSettingsService.getUserSettings(userId);
 
     if (!settings) {
-      return res.status(404).json({
-        success: false,
-        message: "User settings not found",
+      settings = await userSettingsService.createUserSettings(userId, {
+        theme: "SYSTEM",
+        preferredCurrency: "PkR",
+        language: "en",
       });
     }
 

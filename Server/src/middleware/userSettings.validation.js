@@ -1,7 +1,17 @@
 const allowedFields = [
   "theme",
-  "preferredCurrencyId",
+  "preferredCurrency",
+  "language",
+  "emailNotifications",
+  "budgetAlerts",
 ];
+
+const validThemes = ["LIGHT", "DARK", "SYSTEM"];
+
+const normalizeTheme = (theme) => {
+  if (typeof theme !== "string") return theme;
+  return theme.trim().toUpperCase();
+};
 
 const validateUserSettings = (req, res, next) => {
   const settings = req.body;
@@ -35,6 +45,19 @@ const validateUserSettings = (req, res, next) => {
       success: false,
       message: `Invalid settings field(s): ${invalidFields.join(", ")}`,
     });
+  }
+
+  if (settings.theme !== undefined) {
+    const normalizedTheme = normalizeTheme(settings.theme);
+
+    if (!validThemes.includes(normalizedTheme)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid theme value. Allowed values: LIGHT, DARK, SYSTEM",
+      });
+    }
+
+    settings.theme = normalizedTheme;
   }
 
   next();

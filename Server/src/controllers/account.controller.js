@@ -68,7 +68,6 @@ const deleteAccount = async (req, res) => {
       });
     }
 
-    // Account has already been deleted
     if (user.deletedAt) {
       return res.status(400).json({
         success: false,
@@ -76,7 +75,6 @@ const deleteAccount = async (req, res) => {
       });
     }
 
-    // Suspended accounts cannot be deleted by the user
     if (user.status === "SUSPENDED") {
       return res.status(403).json({
         success: false,
@@ -84,43 +82,17 @@ const deleteAccount = async (req, res) => {
       });
     }
 
-    const deletedAt = new Date();
+    const result = await accountService.deleteAccount(userId);
 
-    // Free the original email for future registration
-    
-const mangledUsername =
-  `deleted_${user.userId}_${deletedAt.getTime()}`;
-
-const mangledEmail =
-  `deleted_${user.userId}_${deletedAt.getTime()}@deleted.local`;
-
-const deletedUser = await prisma.user.update({
-  where: {
-    userId,
-  },
-  data: {
-    username: mangledUsername,
-    email: mangledEmail,
-    deletedAt,
-  },
-  select: {
-    userId: true,
-    deletedAt: true,
-  },
-});
-
-
-    return res.status(200).json({
-      success: true,
-      message: "Account deleted successfully",
-      data: deletedUser,
-    });
+    return res.status(200).json(result);
   } catch (error) {
     console.error("Delete account error:", error);
 
-    return res.status(500).json({
+    const message = error.message || "Failed to delete account";
+
+    return res.status(400).json({
       success: false,
-      message: "Failed to delete account",
+      message,
     });
   }
 };
