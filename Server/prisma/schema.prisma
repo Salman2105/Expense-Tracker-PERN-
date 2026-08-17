@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ======================================================
+// ENUMS
+// =====================================================
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum Theme {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+// ======================================================
+// USER
+// =====================================================
+
+model User {
+  userId         String     @id @default(uuid()) @db.Uuid
+  username       String     @unique
+  email          String     @unique
+  passwordHash   String
+  profilePicture String?
+  status         UserStatus @default(ACTIVE)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  originalEmailHash String?
+  deletedAt      DateTime?
+ 
+
+  // Relationships
+  settings     UserSettings?
+  categories   Category[]
+  transactions Transaction[]
+}
+
+// ======================================================
+// USER SETTINGS
+// =====================================================
+
+model UserSettings {
+  settingsId         String   @id @default(uuid()) @db.Uuid
+  userId             String   @unique @db.Uuid
+  preferredCurrency  String
+  language           String
+  theme              Theme    @default(SYSTEM)
+  emailNotifications Boolean  @default(false)
+  budgetAlerts       Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relationship
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
+}
+
+// ======================================================
+// CATEGORY
+// =====================================================
+
+model Category {
+  categoryId String       @id @default(uuid()) @db.Uuid
+  userId     String?      @db.Uuid
+  name       String
+  icon       String
+  type       CategoryType
+  isDefault  Boolean      @default(false)
+
+  // Relationships
+  user User? @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
+
+  transactions Transaction[]
+}
+
+// ======================================================
+// TRANSACTION
+// =====================================================
+
+model Transaction {
+  transactionId   String          @id @default(uuid()) @db.Uuid
+  userId          String          @db.Uuid
+  categoryId      String          @db.Uuid
+  type            TransactionType
+  amount          Decimal         @db.Decimal(12, 2)
+  title           String
+  note            String?
+  transactionDate DateTime        @default(now())
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relationships
+  user     User     @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
+  category Category @relation(fields: [categoryId], references: [categoryId], onDelete: Restrict, onUpdate: Cascade)
+}
