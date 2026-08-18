@@ -1,11 +1,30 @@
 const prisma = require("../../config/prisma");
 
 const createCategory = async ({ userId, name, icon, type }) => {
+  const existingCategory = await prisma.category.findFirst({
+    where: {
+      userId,
+      name: {
+        equals: name.trim(),
+        mode: "insensitive",
+      },
+      isDefault: false,
+    },
+  });
+
+  if (existingCategory) {
+    const error = new Error(
+      "You already have a category with this name"
+    );
+    error.statusCode = 409;
+    throw error;
+  }
+
   const category = await prisma.category.create({
     data: {
       userId,
-      name,
-      icon,
+      name: name.trim(),
+      icon: icon.trim(),
       type,
       isDefault: false,
     },
@@ -86,16 +105,43 @@ const deleteCategory = async ({ categoryId, userId }) => {
     throw error;
   }
 
-  await prisma.category.delete({
+  const uncategorizedCategory = await prisma.category.findFirst({
     where: {
-      categoryId,
+      name: "Uncategorized",
+      isDefault: true,
+      userId: null,
     },
+  });
+
+  if (!uncategorizedCategory) {
+    const error = new Error("Uncategorized category not found");
+    error.statusCode = 500;
+    throw error;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.transaction.updateMany({
+      where: {
+        categoryId: categoryId,
+      },
+      data: {
+        categoryId: uncategorizedCategory.categoryId,
+      },
+    });
+
+    await tx.category.delete({
+      where: {
+        categoryId: categoryId,
+      },
+    });
   });
 
   return {
     message: "Category deleted successfully",
   };
 };
+
+
 
 module.exports = {
   createCategory,

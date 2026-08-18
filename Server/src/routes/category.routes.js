@@ -6,8 +6,8 @@ const authMiddleware = require("../middleware/auth.middleware");
 const {
   validateCreateCategory,
   validateUpdateCategory,
+  validateCategoryId,
 } = require("../middleware/category.validation");
-
 const router = express.Router();
 
 router.post(
@@ -26,6 +26,7 @@ router.get(
 router.patch(
   "/:categoryId",
   authMiddleware,
+  validateCategoryId,
   validateUpdateCategory,
   categoryController.updateCategory
 );
@@ -33,7 +34,7 @@ router.patch(
 router.delete(
   "/:categoryId",
   authMiddleware,
+  validateCategoryId,
   categoryController.deleteCategory
 );
-
 module.exports = router;

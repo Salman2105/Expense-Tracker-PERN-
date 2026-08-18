@@ -9,6 +9,7 @@ const categoryRoutes = require("./routes/category.routes");
 const {
   startAccountCleanupJob,
 } = require("./jobs/accountCleanup.job");
+const transactionRoutes = require("./routes/transaction.routes");
 
 dotenv.config();
 
@@ -39,6 +40,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/users", userSettingsRoutes);
 app.use("/api/account", accountRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/transactions", transactionRoutes);
 
 
 module.exports = app;

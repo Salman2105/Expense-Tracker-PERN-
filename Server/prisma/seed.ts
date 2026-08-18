@@ -41,6 +41,11 @@ const globalCategories = [
     icon: "salary",
     type: "INCOME" as const,
   },
+    {
+    name: "Uncategorized",
+    icon: "Uncategorized",
+    type: "EXPENSE" as const,
+  },
 ];
 
 async function main() {
