@@ -149,10 +149,10 @@ const validateGetTransactions = (req, res, next) => {
   if (categoryId !== undefined) {
     if (
       typeof categoryId !== "string" ||
-      categoryId.trim() === ""
+      !isValidUuid(categoryId)
     ) {
       return res.status(400).json({
-        message: "Category ID cannot be empty",
+        message: "Invalid category ID",
       });
     }
   }
@@ -199,8 +199,21 @@ const validateGetTransactions = (req, res, next) => {
 
   next();
 };
+const validateGetTransactionById = (req, res, next) => {
+  const { transactionId } = req.params;
+
+  if (!isValidUuid(transactionId)) {
+    return res.status(400).json({
+      message: "Invalid transaction ID",
+    });
+  }
+
+  next();
+};
 
 module.exports = {
+  isValidUuid,
   validateUpdateTransaction,
   validateGetTransactions,
+  validateGetTransactionById,
 };

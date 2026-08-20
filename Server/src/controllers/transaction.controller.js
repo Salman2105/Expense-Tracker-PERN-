@@ -1,47 +1,70 @@
 const transactionService = require("../services/transaction.service");
 
+const {
+    successResponse,
+} = require("../utils/response.util");
+
+/**
+ * Get authenticated user ID
+ */
+const getUserId = (req) => {
+    return req.user?.id ?? req.user?.userId;
+};
+
+/**
+ * Create Transaction
+ */
 const createTransaction = async (req, res, next) => {
     try {
-        const userId = req.user?.userId ?? req.user?.id;
+        const userId = getUserId(req);
 
-        const transaction = await transactionService.createTransaction(
-            userId,
-            req.body
+        const transaction =
+            await transactionService.createTransaction(
+                userId,
+                req.body
+            );
+
+        return successResponse(
+            res,
+            201,
+            "Transaction created successfully",
+            transaction
         );
-
-        return res.status(201).json({
-            message: "Transaction created successfully",
-            transaction,
-        });
     } catch (error) {
         next(error);
     }
 };
-const getUserTransactions = async (req, res) => {
-  try {
-    const result = await transactionService.getUserTransactions(
-      req.user.userId,
-      req.query
-    );
 
-    return res.status(200).json(result);
-  } catch (error) {
-    console.error("Get transactions error:", error);
+/**
+ * Get User Transactions
+ */
+const getUserTransactions = async (req, res, next) => {
+    try {
+        const userId = getUserId(req);
 
-    if (error.statusCode) {
-      return res.status(error.statusCode).json({
-        message: error.message,
-      });
+        const result =
+            await transactionService.getUserTransactions(
+                userId,
+                req.query
+            );
+
+        return successResponse(
+            res,
+            200,
+            "Transactions retrieved successfully",
+            result
+        );
+    } catch (error) {
+        next(error);
     }
-
-    return res.status(500).json({
-      message: "Failed to fetch transactions",
-    });
-  }
 };
+
+/**
+ * Get Transaction By ID
+ */
 const getTransactionById = async (req, res, next) => {
     try {
-        const userId = req.user.userId;
+        const userId = getUserId(req);
         const { transactionId } = req.params;
 
         const transaction =
@@ -50,54 +73,63 @@ const getTransactionById = async (req, res, next) => {
                 transactionId
             );
 
-        return res.status(200).json({
-            transaction,
-        });
+        return successResponse(
+            res,
+            200,
+            "Transaction retrieved successfully",
+            transaction
+        );
     } catch (error) {
         next(error);
     }
 };
-const updateTransaction = async (req, res) => {
-  try {
-    const { transactionId } = req.params;
 
-    const transaction = await transactionService.updateTransaction(
-      req.user.userId,
-      transactionId,
-      req.body
-    );
-
-    return res.status(200).json({
-      message: "Transaction updated successfully",
-      transaction,
-    });
-  } catch (error) {
-    console.error("Update transaction error:", error);
-
-    if (error.statusCode) {
-      return res.status(error.statusCode).json({
-        message: error.message,
-      });
-    }
-
-    return res.status(500).json({
-      message: "Failed to update transaction",
-    });
-  }
-};
-const deleteTransaction = async (req, res, next) => {
+/**
+ * Update Transaction
+ */
+const updateTransaction = async (req, res, next) => {
     try {
-        const userId = req.user.userId;
+        const userId = getUserId(req);
         const { transactionId } = req.params;
 
-        await transactionService.deleteTransaction(
-            userId,
-            transactionId
-        );
+        const transaction =
+            await transactionService.updateTransaction(
+                userId,
+                transactionId,
+                req.body
+            );
 
-        return res.status(200).json({
-            message: "Transaction deleted successfully",
-        });
+        return successResponse(
+            res,
+            200,
+            "Transaction updated successfully",
+            transaction
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Delete Transaction
+ */
+const deleteTransaction = async (req, res, next) => {
+    try {
+        const userId = getUserId(req);
+        const { transactionId } = req.params;
+
+        const result =
+            await transactionService.deleteTransaction(
+                userId,
+                transactionId
+            );
+
+        return successResponse(
+            res,
+            200,
+            "Transaction deleted successfully",
+            result
+        );
     } catch (error) {
         next(error);
     }

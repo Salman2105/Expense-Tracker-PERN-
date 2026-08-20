@@ -1,104 +1,178 @@
-
 const prisma = require("../../config/prisma");
 const accountService = require("../services/account.service");
 
-// GET /api/account/status
+const {
+    successResponse,
+    errorResponse,
+} = require("../utils/response.util");
+
+/**
+ * GET /api/account/status
+ *
+ * Get current authenticated user's account status.
+ */
 const getAccountStatus = async (req, res) => {
-  try {
-    const userId = req.user.id;
+    try {
+        const userId = req.user?.id;
 
-    const user = await prisma.user.findUnique({
-      where: {
-        userId,
-      },
-      select: {
-        userId: true,
-        username: true,
-        email: true,
-        status: true,
-        deletedAt: true,
-      },
-    });
+        // Authentication middleware should always provide this.
+        // This is an additional defensive check.
+        if (!userId) {
+            return errorResponse(
+                res,
+                401,
+                "Authentication required",            );
+        }
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+        const user = await prisma.user.findUnique({
+            where: {
+                userId,
+            },
+            select: {
+                userId: true,
+                status: true,
+                deletedAt: true,
+            },
+        });
+
+        if (!user) {
+            return errorResponse(
+                res,
+                404,
+                "User not found",
+                "USER_NOT_FOUND"
+            );
+        }
+
+        return successResponse(
+            res,
+            200,
+            "Account status retrieved successfully",
+            {
+                status: user.status,
+                deletedAt: user.deletedAt,
+            }
+        );
+    } catch (error) {
+        console.error("Get account status error:", error);
+
+        return errorResponse(
+            res,
+            500,
+            "Failed to retrieve account status",
+            "ACCOUNT_STATUS_ERROR"
+        );
     }
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        status: user.status,
-        deletedAt: user.deletedAt,
-      },
-    });
-  } catch (error) {
-    console.error("Get account status error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to retrieve account status",
-    });
-  }
 };
 
-// DELETE /api/account
+/**
+ * DELETE /api/account
+ *
+ * Soft-delete the currently authenticated user's account.
+ */
 const deleteAccount = async (req, res) => {
-  try {
-    const userId = req.user.id;
+    try {
+        const userId = req.user?.id;
 
-    const user = await prisma.user.findUnique({
-      where: {
-        userId,
-      },
-      select: {
-        userId: true,
-        email: true,
-        status: true,
-        deletedAt: true,
-      },
-    });
+        // Defensive authentication check.
+        if (!userId) {
+            return errorResponse(
+                res,
+                401,
+                "Authentication required",
+                "AUTHENTICATION_REQUIRED"
+            );
+        }
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+        const user = await prisma.user.findUnique({
+            where: {
+                userId,
+            },
+            select: {
+                userId: true,
+                status: true,
+                deletedAt: true,
+            },
+        });
+
+        if (!user) {
+            return errorResponse(
+                res,
+                404,
+                "User not found",
+            );
+        }
+
+        // Prevent deleting an already deleted account.
+        if (user.deletedAt) {
+            return errorResponse(
+                res,
+                400,
+                "Account has already been deleted",
+                "ACCOUNT_ALREADY_DELETED"
+            );
+        }
+
+        // Suspended accounts cannot be deleted.
+        if (user.status === "SUSPENDED") {
+            return errorResponse(
+                res,
+                403,
+                "Suspended accounts cannot be deleted",
+                "ACCOUNT_SUSPENDED"
+            );
+        }
+
+        const result = await accountService.deleteAccount(userId);
+
+        return successResponse(
+            res,
+            200,
+            "Account deleted successfully",
+            result
+        );
+    } catch (error) {
+        console.error("Delete account error:", error);
+
+        // Known business errors.
+        if (error.code === "USER_NOT_FOUND") {
+            return errorResponse(
+                res,
+                404,
+                "User not found",
+                "USER_NOT_FOUND"
+            );
+        }
+
+        if (error.code === "ACCOUNT_ALREADY_DELETED") {
+            return errorResponse(
+                res,
+                400,
+                "Account has already been deleted",
+                "ACCOUNT_ALREADY_DELETED"
+            );
+        }
+
+        if (error.code === "ACCOUNT_SUSPENDED") {
+            return errorResponse(
+                res,
+                403,
+                "Suspended accounts cannot be deleted",
+                "ACCOUNT_SUSPENDED"
+            );
+        }
+
+        // Do not expose unexpected internal/database errors.
+        return errorResponse(
+            res,
+            500,
+            "Failed to delete account",
+            "ACCOUNT_DELETE_ERROR"
+        );
     }
-
-    if (user.deletedAt) {
-      return res.status(400).json({
-        success: false,
-        message: "Account has already been deleted",
-      });
-    }
-
-    if (user.status === "SUSPENDED") {
-      return res.status(403).json({
-        success: false,
-        message: "Suspended accounts cannot be deleted",
-      });
-    }
-
-    const result = await accountService.deleteAccount(userId);
-
-    return res.status(200).json(result);
-  } catch (error) {
-    console.error("Delete account error:", error);
-
-    const message = error.message || "Failed to delete account";
-
-    return res.status(400).json({
-      success: false,
-      message,
-    });
-  }
 };
 
 module.exports = {
-  getAccountStatus,
-  deleteAccount,
+    getAccountStatus,
+    deleteAccount,
 };
-

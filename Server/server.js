@@ -1,17 +1,12 @@
-const dotenv = require("dotenv");
-
-dotenv.config();
-
 const app = require("./src/app");
 const connectDB = require("./config/db");
 const prisma = require("./config/prisma");
-
-const PORT = process.env.PORT || 3000;
+const env = require("./config/env");
 
 const start = async () => {
   await connectDB();
-  const server = app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  const server = app.listen(env.port, () => {
+    console.log(`Server running on http://localhost:${env.port}`);
   });
 
   const shutdown = async () => {

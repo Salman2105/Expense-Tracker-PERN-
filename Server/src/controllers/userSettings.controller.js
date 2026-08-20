@@ -1,97 +1,192 @@
 const userSettingsService = require("../services/userSettings.service");
 
+const {
+    successResponse,
+    errorResponse,
+} = require("../utils/response.util");
+
+/**
+ * GET /api/user/me/settings
+ */
 const getMySettings = async (req, res) => {
-  try {
-    const userId = req.user.id;
+    try {
+        const userId = req.user?.id;
 
-    let settings = await userSettingsService.getUserSettings(userId);
+        if (!userId) {
+            return errorResponse(
+                res,
+                401,
+                "Authentication required",
+                "AUTHENTICATION_REQUIRED"
+            );
+        }
 
-    if (!settings) {
-      settings = await userSettingsService.createUserSettings(userId, {
-        theme: "SYSTEM",
-        preferredCurrency: "PkR",
-        language: "en",
-      });
+        let settings = await userSettingsService.getUserSettings(
+            userId
+        );
+
+        /**
+         * Automatically create default settings
+         * when the user doesn't have a settings record.
+         */
+        if (!settings) {
+            settings = await userSettingsService.createUserSettings(
+                userId,
+                {
+                    theme: "SYSTEM",
+                    preferredCurrency: "PKR",
+                    language: "en",
+                    emailNotifications: true,
+                    budgetAlerts: true,
+                }
+            );
+        }
+
+        return successResponse(
+            res,
+            200,
+            "User settings retrieved successfully",
+            settings
+        );
+    } catch (error) {
+        console.error("Get settings error:", error);
+
+        if (error.code === "INVALID_USER_ID") {
+            return errorResponse(
+                res,
+                400,
+                "Invalid user ID",
+                "INVALID_USER_ID"
+            );
+        }
+
+        return errorResponse(
+            res,
+            500,
+            "Failed to get user settings",
+            "GET_SETTINGS_ERROR"
+        );
     }
-
-    return res.status(200).json({
-      success: true,
-      data: settings,
-    });
-  } catch (error) {
-    console.error("Get settings error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to get user settings",
-    });
-  }
 };
 
+/**
+ * POST /api/user/me/settings
+ */
 const createMySettings = async (req, res) => {
-  try {
-    const userId = req.user.id;
+    try {
+        const userId = req.user?.id;
 
-    const settings = await userSettingsService.createUserSettings(
-      userId,
-      req.body
-    );
+        if (!userId) {
+            return errorResponse(
+                res,
+                401,
+                "Authentication required",
+                "AUTHENTICATION_REQUIRED"
+            );
+        }
 
-    return res.status(201).json({
-      success: true,
-      message: "User settings created successfully",
-      data: settings,
-    });
-  } catch (error) {
-    console.error("Create settings error:", error);
+        const settings =
+            await userSettingsService.createUserSettings(
+                userId,
+                req.body
+            );
 
-    if (error.code === "P2002") {
-      return res.status(409).json({
-        success: false,
-        message: "User settings already exist",
-      });
+        return successResponse(
+            res,
+            201,
+            "User settings created successfully",
+            settings
+        );
+    } catch (error) {
+        console.error("Create settings error:", error);
+
+        if (error.code === "INVALID_USER_ID") {
+            return errorResponse(
+                res,
+                400,
+                "Invalid user ID",
+                "INVALID_USER_ID"
+            );
+        }
+
+        if (error.code === "P2002") {
+            return errorResponse(
+                res,
+                409,
+                "User settings already exist",
+                "SETTINGS_ALREADY_EXIST"
+            );
+        }
+
+        return errorResponse(
+            res,
+            500,
+            "Failed to create user settings",
+            "CREATE_SETTINGS_ERROR"
+        );
     }
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to create user settings",
-    });
-  }
 };
 
+/**
+ * PATCH /api/user/me/settings
+ */
 const updateMySettings = async (req, res) => {
-  try {
-    const userId = req.user.id;
+    try {
+        const userId = req.user?.id;
 
-    const settings = await userSettingsService.updateUserSettings(
-      userId,
-      req.body
-    );
+        if (!userId) {
+            return errorResponse(
+                res,
+                401,
+                "Authentication required",
+                "AUTHENTICATION_REQUIRED"
+            );
+        }
 
-    return res.status(200).json({
-      success: true,
-      message: "User settings updated successfully",
-      data: settings,
-    });
-  } catch (error) {
-    console.error("Update settings error:", error);
+        const settings =
+            await userSettingsService.updateUserSettings(
+                userId,
+                req.body
+            );
 
-    if (error.code === "P2025") {
-      return res.status(404).json({
-        success: false,
-        message: "User settings not found",
-      });
+        return successResponse(
+            res,
+            200,
+            "User settings updated successfully",
+            settings
+        );
+    } catch (error) {
+        console.error("Update settings error:", error);
+
+        if (error.code === "INVALID_USER_ID") {
+            return errorResponse(
+                res,
+                400,
+                "Invalid user ID",
+                "INVALID_USER_ID"
+            );
+        }
+
+        if (error.code === "P2025") {
+            return errorResponse(
+                res,
+                404,
+                "User settings not found",
+                "SETTINGS_NOT_FOUND"
+            );
+        }
+
+        return errorResponse(
+            res,
+            500,
+            "Failed to update user settings",
+            "UPDATE_SETTINGS_ERROR"
+        );
     }
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to update user settings",
-    });
-  }
 };
 
 module.exports = {
-  getMySettings,
-  createMySettings,
-  updateMySettings,
+    getMySettings,
+    createMySettings,
+    updateMySettings,
 };

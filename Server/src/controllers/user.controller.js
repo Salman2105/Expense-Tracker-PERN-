@@ -1,115 +1,157 @@
 const userService = require("../services/user.service");
 
+const {
+    successResponse,
+    errorResponse,
+} = require("../utils/response.util");
+
 const getMyProfile = async (req, res) => {
-  try {
-    const userId = req.user.id;
+    try {
+        const userId = req.user.id;
 
-    const user = await userService.getUserProfile(userId);
+        const user = await userService.getUserProfile(userId);
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+        if (!user) {
+            return errorResponse(
+                res,
+                404,
+                "User not found",
+                "USER_NOT_FOUND"
+            );
+        }
+
+        return successResponse(
+            res,
+            200,
+            "User profile retrieved successfully",
+            user
+        );
+    } catch (error) {
+        console.error("Get profile error:", error);
+
+        return errorResponse(
+            res,
+            500,
+            "Failed to get user profile",
+            "GET_PROFILE_ERROR"
+        );
     }
-
-    return res.status(200).json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    console.error("Get profile error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to get user profile",
-    });
-  }
 };
 
 const updateMyProfile = async (req, res) => {
-  try {
-    const userId = req.user.id;
+    try {
+        const userId = req.user.id;
 
-    const { username, profilePicture } = req.body;
+        const {
+            username,
+            profilePicture,
+        } = req.body;
 
-    const updatedUser = await userService.updateUserProfile(userId, {
-      username,
-      profilePicture,
-    });
+        const updatedUser = await userService.updateUserProfile(
+            userId,
+            {
+                username,
+                profilePicture,
+            }
+        );
 
-    return res.status(200).json({
-      success: true,
-      message: "Profile updated successfully",
-      data: updatedUser,
-    });
-  } catch (error) {
-    console.error("Update profile error:", error);
+        return successResponse(
+            res,
+            200,
+            "Profile updated successfully",
+            updatedUser
+        );
+    } catch (error) {
+        console.error("Update profile error:", error);
 
-    // Prisma unique constraint violation
-    if (error.code === "P2002") {
-      return res.status(409).json({
-        success: false,
-        message: "Username is already taken",
-      });
+        if (error.code === "P2002") {
+            return errorResponse(
+                res,
+                409,
+                "Username is already taken",
+                "USERNAME_ALREADY_TAKEN"
+            );
+        }
+
+        if (error.code === "P2025") {
+            return errorResponse(
+                res,
+                404,
+                "User not found",
+                "USER_NOT_FOUND"
+            );
+        }
+
+        return errorResponse(
+            res,
+            500,
+            "Failed to update user profile",
+            "UPDATE_PROFILE_ERROR"
+        );
     }
-
-    // User does not exist
-    if (error.code === "P2025") {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to update user profile",
-    });
-  }
 };
+
 const changePassword = async (req, res) => {
-  try {
-    const userId = req.user.id;
+    try {
+        const userId = req.user.id;
 
-    const { currentPassword, newPassword } = req.body;
+        const {
+            currentPassword,
+            newPassword,
+        } = req.body;
 
-    await userService.changeUserPassword(
-      userId,
-      currentPassword,
-      newPassword
-    );
+        await userService.changeUserPassword(
+            userId,
+            currentPassword,
+            newPassword
+        );
 
-    return res.status(200).json({
-      success: true,
-      message: "Password changed successfully",
-    });
-  } catch (error) {
-    console.error("Change password error:", error);
+        return successResponse(
+            res,
+            200,
+            "Password changed successfully"
+        );
+    } catch (error) {
+        if (error.code === "INVALID_CURRENT_PASSWORD") {
+            return errorResponse(
+                res,
+                400,
+                "Current password is incorrect",
+                "INVALID_CURRENT_PASSWORD"
+            );
+        }
 
-    if (error.code === "INVALID_CURRENT_PASSWORD") {
-      return res.status(400).json({
-        success: false,
-        message: "Current password is incorrect",
-      });
+        if (error.code === "SAME_PASSWORD") {
+            return errorResponse(
+                res,
+                400,
+                "New password must be different from current password",
+                "SAME_PASSWORD"
+            );
+        }
+
+        console.error("Change password error:", error);
+
+        if (error.code === "USER_NOT_FOUND") {
+            return errorResponse(
+                res,
+                404,
+                "User not found",
+                "USER_NOT_FOUND"
+            );
+        }
+
+        return errorResponse(
+            res,
+            500,
+            "Failed to change password",
+            "CHANGE_PASSWORD_ERROR"
+        );
     }
-
-    if (error.code === "USER_NOT_FOUND") {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to change password",
-    });
-  }
 };
 
 module.exports = {
-  getMyProfile,
-  updateMyProfile,
-  changePassword,
+    getMyProfile,
+    updateMyProfile,
+    changePassword,
 };

@@ -1,19 +1,23 @@
+const { validate: isValidUuid } = require("uuid");
+
+const VALID_CATEGORY_TYPES = ["INCOME", "EXPENSE"];
+
 const validateCreateCategory = (req, res, next) => {
   const { name, icon, type } = req.body;
 
-  if (!name || typeof name !== "string" || !name.trim()) {
+  if (typeof name !== "string" || !name.trim()) {
     return res.status(400).json({
       message: "Category name is required",
     });
   }
 
-  if (!icon || typeof icon !== "string" || !icon.trim()) {
+  if (typeof icon !== "string" || !icon.trim()) {
     return res.status(400).json({
       message: "Category icon is required",
     });
   }
 
-  if (!type || !["INCOME", "EXPENSE"].includes(type)) {
+  if (!VALID_CATEGORY_TYPES.includes(type)) {
     return res.status(400).json({
       message: "Category type must be INCOME or EXPENSE",
     });
@@ -24,6 +28,16 @@ const validateCreateCategory = (req, res, next) => {
 
 const validateUpdateCategory = (req, res, next) => {
   const { name, icon, type } = req.body;
+
+  if (
+    name === undefined &&
+    icon === undefined &&
+    type === undefined
+  ) {
+    return res.status(400).json({
+      message: "At least one field is required for update",
+    });
+  }
 
   if (name !== undefined) {
     if (typeof name !== "string" || !name.trim()) {
@@ -41,33 +55,22 @@ const validateUpdateCategory = (req, res, next) => {
     }
   }
 
-  if (type !== undefined) {
-    if (!["INCOME", "EXPENSE"].includes(type)) {
-      return res.status(400).json({
-        message: "Category type must be INCOME or EXPENSE",
-      });
-    }
-  }
-
   if (
-    name === undefined &&
-    icon === undefined &&
-    type === undefined
+    type !== undefined &&
+    !VALID_CATEGORY_TYPES.includes(type)
   ) {
     return res.status(400).json({
-      message: "At least one field is required for update",
+      message: "Category type must be INCOME or EXPENSE",
     });
   }
 
   next();
 };
+
 const validateCategoryId = (req, res, next) => {
   const { categoryId } = req.params;
 
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-  if (!uuidRegex.test(categoryId)) {
+  if (!isValidUuid(categoryId)) {
     return res.status(400).json({
       message: "Invalid category ID",
     });

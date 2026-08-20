@@ -21,12 +21,30 @@ const getUserProfile = async (userId) => {
 const updateUserProfile = async (userId, data) => {
   const updateData = {};
 
-  if (data.username !== undefined) {
-    updateData.username = data.username;
+  /**
+   * Profile picture
+   *
+   * Validation middleware should already validate this,
+   * but the service still avoids storing undefined values.
+   */
+  if (data.profilePicture !== undefined) {
+    updateData.profilePicture =
+      data.profilePicture === null
+        ? null
+        : data.profilePicture.trim();
   }
 
-  if (data.profilePicture !== undefined) {
-    updateData.profilePicture = data.profilePicture;
+  /**
+   * Prevent empty PATCH requests from reaching Prisma.
+   */
+  if (Object.keys(updateData).length === 0) {
+    const error = new Error(
+      "At least one profile field must be provided"
+    );
+
+    error.code = "EMPTY_UPDATE";
+
+    throw error;
   }
 
   try {
@@ -47,14 +65,19 @@ const updateUserProfile = async (userId, data) => {
     });
   } catch (error) {
     if (error?.code === "P2002") {
-      const prismaError = new Error("Username is already taken");
+      const prismaError = new Error(
+        "Username is already taken"
+      );
+
       prismaError.code = "P2002";
+
       throw prismaError;
     }
 
     throw error;
   }
 };
+
 const changeUserPassword = async (
   userId,
   currentPassword,
@@ -71,23 +94,59 @@ const changeUserPassword = async (
 
   if (!user) {
     const error = new Error("User not found");
+
     error.code = "USER_NOT_FOUND";
+
     throw error;
   }
 
+  /**
+   * Verify current password.
+   */
   const isPasswordCorrect = await bcrypt.compare(
     currentPassword,
     user.passwordHash
   );
 
   if (!isPasswordCorrect) {
-    const error = new Error("Current password is incorrect");
+    const error = new Error(
+      "Current password is incorrect"
+    );
+
     error.code = "INVALID_CURRENT_PASSWORD";
+
     throw error;
   }
 
-  const newPasswordHash = await bcrypt.hash(newPassword, 12);
+  /**
+   * Prevent reusing the same password.
+   */
+  const isSamePassword = await bcrypt.compare(
+    newPassword,
+    user.passwordHash
+  );
 
+  if (isSamePassword) {
+    const error = new Error(
+      "New password must be different from current password"
+    );
+
+    error.code = "SAME_PASSWORD";
+
+    throw error;
+  }
+
+  /**
+   * Hash new password.
+   */
+  const newPasswordHash = await bcrypt.hash(
+    newPassword,
+    12
+  );
+
+  /**
+   * Update password.
+   */
   await prisma.user.update({
     where: {
       userId,
@@ -101,5 +160,5 @@ const changeUserPassword = async (
 module.exports = {
   getUserProfile,
   updateUserProfile,
-  changeUserPassword
+  changeUserPassword,
 };
