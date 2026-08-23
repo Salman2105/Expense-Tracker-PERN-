@@ -148,3 +148,4 @@
 {"duration":"126ms","ip":"::1","level":"info","message":"HTTP Request","method":"GET","statusCode":200,"timestamp":"2026-08-20T14:03:39.929Z","url":"/api/transactions/9e010238-3d83-4280-846d-f67df0212914"}
 {"duration":"115ms","ip":"::1","level":"info","message":"HTTP Request","method":"DELETE","statusCode":200,"timestamp":"2026-08-20T14:05:10.271Z","url":"/api/transactions/9e010238-3d83-4280-846d-f67df0212914"}
 {"duration":"318ms","ip":"::1","level":"info","message":"HTTP Request","method":"GET","statusCode":200,"timestamp":"2026-08-20T14:05:43.741Z","url":"/api/transactions?page=1&limit=2&type=EXPENSE"}
+{"duration":"10ms","ip":"::1","level":"info","message":"HTTP Request","method":"POST","statusCode":404,"timestamp":"2026-08-21T10:54:24.719Z","url":"/auth/register"}
