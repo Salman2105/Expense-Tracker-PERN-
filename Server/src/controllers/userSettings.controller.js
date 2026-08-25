@@ -8,7 +8,7 @@ const {
 /**
  * GET /api/user/me/settings
  */
-const getMySettings = async (req, res) => {
+const getMySettings = async (req, res, next) => {
     try {
         const userId = req.user?.id;
 
@@ -42,37 +42,22 @@ const getMySettings = async (req, res) => {
             );
         }
 
-        return successResponse(
-            res,
-            200,
-            "User settings retrieved successfully",
-            settings
-        );
+        // Intentionally no message field here, matching this endpoint's
+        // long-standing response shape (unlike every other success
+        // response in this file, which does include one).
+        return res.status(200).json({
+            success: true,
+            data: settings,
+        });
     } catch (error) {
-        console.error("Get settings error:", error);
-
-        if (error.code === "INVALID_USER_ID") {
-            return errorResponse(
-                res,
-                400,
-                "Invalid user ID",
-                "INVALID_USER_ID"
-            );
-        }
-
-        return errorResponse(
-            res,
-            500,
-            "Failed to get user settings",
-            "GET_SETTINGS_ERROR"
-        );
+        next(error);
     }
 };
 
 /**
  * POST /api/user/me/settings
  */
-const createMySettings = async (req, res) => {
+const createMySettings = async (req, res, next) => {
     try {
         const userId = req.user?.id;
 
@@ -98,39 +83,14 @@ const createMySettings = async (req, res) => {
             settings
         );
     } catch (error) {
-        console.error("Create settings error:", error);
-
-        if (error.code === "INVALID_USER_ID") {
-            return errorResponse(
-                res,
-                400,
-                "Invalid user ID",
-                "INVALID_USER_ID"
-            );
-        }
-
-        if (error.code === "P2002") {
-            return errorResponse(
-                res,
-                409,
-                "User settings already exist",
-                "SETTINGS_ALREADY_EXIST"
-            );
-        }
-
-        return errorResponse(
-            res,
-            500,
-            "Failed to create user settings",
-            "CREATE_SETTINGS_ERROR"
-        );
+        next(error);
     }
 };
 
 /**
  * PATCH /api/user/me/settings
  */
-const updateMySettings = async (req, res) => {
+const updateMySettings = async (req, res, next) => {
     try {
         const userId = req.user?.id;
 
@@ -156,32 +116,7 @@ const updateMySettings = async (req, res) => {
             settings
         );
     } catch (error) {
-        console.error("Update settings error:", error);
-
-        if (error.code === "INVALID_USER_ID") {
-            return errorResponse(
-                res,
-                400,
-                "Invalid user ID",
-                "INVALID_USER_ID"
-            );
-        }
-
-        if (error.code === "P2025") {
-            return errorResponse(
-                res,
-                404,
-                "User settings not found",
-                "SETTINGS_NOT_FOUND"
-            );
-        }
-
-        return errorResponse(
-            res,
-            500,
-            "Failed to update user settings",
-            "UPDATE_SETTINGS_ERROR"
-        );
+        next(error);
     }
 };
 

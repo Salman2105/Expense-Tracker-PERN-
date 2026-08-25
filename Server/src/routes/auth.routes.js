@@ -7,6 +7,11 @@ const {
   authRateLimiter,
 } = require("../middleware/rateLimit.middleware");
 
+const {
+  validateRegisterInput,
+  validateLoginInput,
+} = require("../middleware/auth.validation");
+
 const router = express.Router();
 
 /**
@@ -57,6 +62,7 @@ const router = express.Router();
 router.post(
   "/register",
   authRateLimiter,
+  validateRegisterInput,
   authController.register
 );
 /**
@@ -100,6 +106,7 @@ router.post(
 router.post(
   "/login",
   authRateLimiter,
+  validateLoginInput,
   authController.login
 );
 
@@ -157,13 +164,7 @@ router.post(
 router.get(
   "/protected",
   authenticate,
-  (req, res) => {
-    return res.status(200).json({
-      success: true,
-      message: "You are authenticated",
-      userId: req.user.id,
-    });
-  }
+  authController.checkAuthStatus
 );
 
 module.exports = router;

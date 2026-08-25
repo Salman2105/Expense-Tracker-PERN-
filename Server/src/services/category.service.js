@@ -1,8 +1,10 @@
 const prisma = require("../../config/prisma");
 const { validate: isValidUuid } = require("uuid");
+const { TRANSACTION_TYPES } = require("../constants");
+const AppError = require("../utils/AppError");
 
-// Allowed category types
-const VALID_CATEGORY_TYPES = ["INCOME", "EXPENSE"];
+// Category type shares the same INCOME/EXPENSE enum as transaction type.
+const VALID_CATEGORY_TYPES = TRANSACTION_TYPES;
 
 /**
  * Create Category
@@ -10,32 +12,25 @@ const VALID_CATEGORY_TYPES = ["INCOME", "EXPENSE"];
 const createCategory = async ({ userId, name, icon, type }) => {
   // Validate user UUID
   if (!isValidUuid(userId)) {
-    const error = new Error("Invalid user ID");
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Invalid user ID", 400);
   }
 
   // Validate name
   if (typeof name !== "string" || !name.trim()) {
-    const error = new Error("Category name is required");
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Category name is required", 400);
   }
 
   // Validate icon
   if (typeof icon !== "string" || !icon.trim()) {
-    const error = new Error("Category icon is required");
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Category icon is required", 400);
   }
 
   // Validate category type
   if (!VALID_CATEGORY_TYPES.includes(type)) {
-    const error = new Error(
-      "Invalid category type. Type must be INCOME or EXPENSE"
+    throw new AppError(
+      "Invalid category type. Type must be INCOME or EXPENSE",
+      400
     );
-    error.statusCode = 400;
-    throw error;
   }
 
   const trimmedName = name.trim();
@@ -54,11 +49,10 @@ const createCategory = async ({ userId, name, icon, type }) => {
   });
 
   if (existingCategory) {
-    const error = new Error(
-      "You already have a category with this name"
+    throw new AppError(
+      "You already have a category with this name",
+      409
     );
-    error.statusCode = 409;
-    throw error;
   }
 
   const category = await prisma.category.create({
@@ -83,9 +77,7 @@ const createCategory = async ({ userId, name, icon, type }) => {
 const getCategories = async (userId) => {
   // Validate user UUID
   if (!isValidUuid(userId)) {
-    const error = new Error("Invalid user ID");
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Invalid user ID", 400);
   }
 
   const categories = await prisma.category.findMany({
@@ -121,16 +113,12 @@ const updateCategory = async ({
 }) => {
   // Validate category UUID
   if (!isValidUuid(categoryId)) {
-    const error = new Error("Invalid category ID");
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Invalid category ID", 400);
   }
 
   // Validate user UUID
   if (!isValidUuid(userId)) {
-    const error = new Error("Invalid user ID");
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Invalid user ID", 400);
   }
 
   // Ensure at least one field is provided
@@ -139,28 +127,23 @@ const updateCategory = async ({
     icon === undefined &&
     type === undefined
   ) {
-    const error = new Error(
-      "At least one field is required to update the category"
+    throw new AppError(
+      "At least one field is required to update the category",
+      400
     );
-    error.statusCode = 400;
-    throw error;
   }
 
   // Validate name if provided
   if (name !== undefined) {
     if (typeof name !== "string" || !name.trim()) {
-      const error = new Error("Category name cannot be empty");
-      error.statusCode = 400;
-      throw error;
+      throw new AppError("Category name cannot be empty", 400);
     }
   }
 
   // Validate icon if provided
   if (icon !== undefined) {
     if (typeof icon !== "string" || !icon.trim()) {
-      const error = new Error("Category icon cannot be empty");
-      error.statusCode = 400;
-      throw error;
+      throw new AppError("Category icon cannot be empty", 400);
     }
   }
 
@@ -169,11 +152,10 @@ const updateCategory = async ({
     type !== undefined &&
     !VALID_CATEGORY_TYPES.includes(type)
   ) {
-    const error = new Error(
-      "Invalid category type. Type must be INCOME or EXPENSE"
+    throw new AppError(
+      "Invalid category type. Type must be INCOME or EXPENSE",
+      400
     );
-    error.statusCode = 400;
-    throw error;
   }
 
   // Find category and verify ownership
@@ -190,11 +172,10 @@ const updateCategory = async ({
   });
 
   if (!category) {
-    const error = new Error(
-      "Category not found or cannot be modified"
+    throw new AppError(
+      "Category not found or cannot be modified",
+      404
     );
-    error.statusCode = 404;
-    throw error;
   }
 
   const trimmedName =
@@ -220,11 +201,10 @@ const updateCategory = async ({
     });
 
     if (existingCategory) {
-      const error = new Error(
-        "You already have a category with this name"
+      throw new AppError(
+        "You already have a category with this name",
+        409
       );
-      error.statusCode = 409;
-      throw error;
     }
   }
 
@@ -256,16 +236,12 @@ const updateCategory = async ({
 const deleteCategory = async ({ categoryId, userId }) => {
   // Validate category UUID
   if (!isValidUuid(categoryId)) {
-    const error = new Error("Invalid category ID");
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Invalid category ID", 400);
   }
 
   // Validate user UUID
   if (!isValidUuid(userId)) {
-    const error = new Error("Invalid user ID");
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Invalid user ID", 400);
   }
 
   // Verify ownership and prevent deleting default categories
@@ -278,11 +254,10 @@ const deleteCategory = async ({ categoryId, userId }) => {
   });
 
   if (!category) {
-    const error = new Error(
-      "Category not found or cannot be deleted"
+    throw new AppError(
+      "Category not found or cannot be deleted",
+      404
     );
-    error.statusCode = 404;
-    throw error;
   }
 
   // Reassign transactions and delete category atomically

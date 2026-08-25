@@ -3,3 +3,7 @@ node_modules
 .env
 
 /generated/prisma
+
+# Runtime log output (was previously tracked; existing logs/*.log files
+# remain in git history/tracking until removed with `git rm --cached`)
+logs/*.log

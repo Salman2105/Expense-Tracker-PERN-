@@ -7,11 +7,8 @@ const {
   validateCreateTransaction,
   validateUpdateTransaction,
   validateTransactionId,
-} = require("../middleware/transaction.validation");
-
-const {
   validateGetTransactions,
-} = require("../validations/transaction.validator");
+} = require("../middleware/transaction.validation");
 
 const router = express.Router();
 

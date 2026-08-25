@@ -1,31 +1,50 @@
 const prisma = require("../../config/prisma");
+const { validate: isValidUuid } = require("uuid");
+const { TRANSACTION_TYPES, MAX_PAGE_SIZE } = require("../constants");
+const AppError = require("../utils/AppError");
 
-const VALID_TRANSACTION_TYPES = ["INCOME", "EXPENSE"];
-
-/**
- * UUID validation
- */
-const isValidUuid = (value) => {
-  if (typeof value !== "string") {
-    return false;
-  }
-
-  const trimmed = value.trim();
-
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    trimmed
-  );
-};
+const VALID_TRANSACTION_TYPES = TRANSACTION_TYPES;
 
 /**
  * Validate authenticated user ID
  */
 const validateUserId = (userId) => {
   if (!isValidUuid(userId)) {
-    const error = new Error("Invalid user ID");
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Invalid user ID", 400);
   }
+};
+
+/**
+ * Fetch a category by ID and confirm the given user is allowed to use it
+ * (global/default categories are usable by anyone; custom categories only
+ * by their owner). Used by both createTransaction and updateTransaction,
+ * which each need to resolve the category a transaction will end up in.
+ */
+const resolveAndAuthorizeCategory = async (categoryId, userId) => {
+  const category = await prisma.category.findUnique({
+    where: {
+      categoryId,
+    },
+  });
+
+  if (!category) {
+    throw new AppError("Category not found", 404);
+  }
+
+  // Global/default categories are available to all users
+  const isGlobalCategory =
+    category.isDefault === true &&
+    category.userId === null;
+
+  // Custom category must belong to current user
+  if (
+    !isGlobalCategory &&
+    category.userId !== userId
+  ) {
+    throw new AppError("You do not have access to this category", 403);
+  }
+
+  return category;
 };
 
 /**
@@ -45,18 +64,15 @@ const createTransaction = async (userId, data = {}) => {
 
   // Validate category UUID
   if (!isValidUuid(categoryId)) {
-    const error = new Error("Invalid category ID");
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Invalid category ID", 400);
   }
 
   // Validate transaction type
   if (!VALID_TRANSACTION_TYPES.includes(type)) {
-    const error = new Error(
-      "Invalid transaction type. Type must be INCOME or EXPENSE"
+    throw new AppError(
+      "Invalid transaction type. Type must be INCOME or EXPENSE",
+      400
     );
-    error.statusCode = 400;
-    throw error;
   }
 
   // Validate amount
@@ -68,9 +84,7 @@ const createTransaction = async (userId, data = {}) => {
     !Number.isFinite(parsedAmount) ||
     parsedAmount <= 0
   ) {
-    const error = new Error("Amount must be greater than 0");
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Amount must be greater than 0", 400);
   }
 
   // Validate title
@@ -78,9 +92,7 @@ const createTransaction = async (userId, data = {}) => {
     typeof title !== "string" ||
     !title.trim()
   ) {
-    const error = new Error("Transaction title is required");
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Transaction title is required", 400);
   }
 
   // Validate note
@@ -89,9 +101,7 @@ const createTransaction = async (userId, data = {}) => {
     note !== null &&
     typeof note !== "string"
   ) {
-    const error = new Error("Note must be a string");
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Note must be a string", 400);
   }
 
   // Validate transaction date
@@ -101,50 +111,15 @@ const createTransaction = async (userId, data = {}) => {
     parsedTransactionDate = new Date(transactionDate);
 
     if (Number.isNaN(parsedTransactionDate.getTime())) {
-      const error = new Error("Invalid transaction date");
-      error.statusCode = 400;
-      throw error;
+      throw new AppError("Invalid transaction date", 400);
     }
   }
 
-  // Find category
-  const category = await prisma.category.findUnique({
-    where: {
-      categoryId,
-    },
-  });
-
-  // Category does not exist
-  if (!category) {
-    const error = new Error("Category not found");
-    error.statusCode = 404;
-    throw error;
-  }
-
-  // Global/default categories are available to all users
-  const isGlobalCategory =
-    category.isDefault === true &&
-    category.userId === null;
-
-  // Custom category must belong to current user
-  if (
-    !isGlobalCategory &&
-    category.userId !== userId
-  ) {
-    const error = new Error(
-      "You do not have access to this category"
-    );
-    error.statusCode = 403;
-    throw error;
-  }
+  const category = await resolveAndAuthorizeCategory(categoryId, userId);
 
   // Transaction type must match category type
   if (category.type !== type) {
-    const error = new Error(
-      "Transaction type must match category type"
-    );
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Transaction type must match category type", 400);
   }
 
   // Create transaction
@@ -192,26 +167,18 @@ const getUserTransactions = async (
     !Number.isInteger(parsedPage) ||
     parsedPage < 1
   ) {
-    const error = new Error(
-      "Page must be a positive integer"
-    );
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Page must be a positive integer", 400);
   }
 
   if (
     !Number.isInteger(parsedLimit) ||
     parsedLimit < 1
   ) {
-    const error = new Error(
-      "Limit must be a positive integer"
-    );
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Limit must be a positive integer", 400);
   }
 
   const pageNumber = parsedPage;
-  const limitNumber = Math.min(parsedLimit, 100);
+  const limitNumber = Math.min(parsedLimit, MAX_PAGE_SIZE);
 
   const skip = (pageNumber - 1) * limitNumber;
 
@@ -223,11 +190,10 @@ const getUserTransactions = async (
   // Filter by transaction type
   if (type !== undefined) {
     if (!VALID_TRANSACTION_TYPES.includes(type)) {
-      const error = new Error(
-        "Transaction type must be either INCOME or EXPENSE"
+      throw new AppError(
+        "Transaction type must be either INCOME or EXPENSE",
+        400
       );
-      error.statusCode = 400;
-      throw error;
     }
 
     where.type = type;
@@ -236,9 +202,7 @@ const getUserTransactions = async (
   // Filter by category
   if (categoryId !== undefined) {
     if (!isValidUuid(categoryId)) {
-      const error = new Error("Invalid category ID");
-      error.statusCode = 400;
-      throw error;
+      throw new AppError("Invalid category ID", 400);
     }
 
     // Make sure requested category is accessible
@@ -258,9 +222,7 @@ const getUserTransactions = async (
     });
 
     if (!category) {
-      const error = new Error("Invalid category");
-      error.statusCode = 400;
-      throw error;
+      throw new AppError("Invalid category", 400);
     }
 
     where.categoryId = categoryId;
@@ -274,9 +236,7 @@ const getUserTransactions = async (
       const start = new Date(startDate);
 
       if (Number.isNaN(start.getTime())) {
-        const error = new Error("Invalid start date");
-        error.statusCode = 400;
-        throw error;
+        throw new AppError("Invalid start date", 400);
       }
 
       start.setHours(0, 0, 0, 0);
@@ -288,9 +248,7 @@ const getUserTransactions = async (
       const end = new Date(endDate);
 
       if (Number.isNaN(end.getTime())) {
-        const error = new Error("Invalid end date");
-        error.statusCode = 400;
-        throw error;
+        throw new AppError("Invalid end date", 400);
       }
 
       end.setHours(23, 59, 59, 999);
@@ -305,11 +263,10 @@ const getUserTransactions = async (
       where.transactionDate.gte >
         where.transactionDate.lte
     ) {
-      const error = new Error(
-        "Start date cannot be greater than end date"
+      throw new AppError(
+        "Start date cannot be greater than end date",
+        400
       );
-      error.statusCode = 400;
-      throw error;
     }
   }
 
@@ -352,11 +309,7 @@ const getTransactionById = async (
   validateUserId(userId);
 
   if (!isValidUuid(transactionId)) {
-    const error = new Error(
-      "Invalid transaction ID"
-    );
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Invalid transaction ID", 400);
   }
 
   const transaction =
@@ -368,11 +321,7 @@ const getTransactionById = async (
     });
 
   if (!transaction) {
-    const error = new Error(
-      "Transaction not found"
-    );
-    error.statusCode = 404;
-    throw error;
+    throw new AppError("Transaction not found", 404);
   }
 
   return transaction;
@@ -390,11 +339,7 @@ const updateTransaction = async (
 
   // Validate transaction UUID
   if (!isValidUuid(transactionId)) {
-    const error = new Error(
-      "Invalid transaction ID"
-    );
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Invalid transaction ID", 400);
   }
 
   // Find existing transaction and verify ownership
@@ -407,11 +352,7 @@ const updateTransaction = async (
     });
 
   if (!existingTransaction) {
-    const error = new Error(
-      "Transaction not found"
-    );
-    error.statusCode = 404;
-    throw error;
+    throw new AppError("Transaction not found", 404);
   }
 
   // Allowlisted update object
@@ -425,11 +366,7 @@ const updateTransaction = async (
       !Number.isFinite(amount) ||
       amount <= 0
     ) {
-      const error = new Error(
-        "Amount must be greater than 0"
-      );
-      error.statusCode = 400;
-      throw error;
+      throw new AppError("Amount must be greater than 0", 400);
     }
 
     updateData.amount = amount;
@@ -441,11 +378,7 @@ const updateTransaction = async (
       typeof data.title !== "string" ||
       !data.title.trim()
     ) {
-      const error = new Error(
-        "Title cannot be empty"
-      );
-      error.statusCode = 400;
-      throw error;
+      throw new AppError("Title cannot be empty", 400);
     }
 
     updateData.title = data.title.trim();
@@ -457,11 +390,7 @@ const updateTransaction = async (
       data.note !== null &&
       typeof data.note !== "string"
     ) {
-      const error = new Error(
-        "Note must be a string"
-      );
-      error.statusCode = 400;
-      throw error;
+      throw new AppError("Note must be a string", 400);
     }
 
     updateData.note =
@@ -475,11 +404,10 @@ const updateTransaction = async (
         data.type
       )
     ) {
-      const error = new Error(
-        "Transaction type must be either INCOME or EXPENSE"
+      throw new AppError(
+        "Transaction type must be either INCOME or EXPENSE",
+        400
       );
-      error.statusCode = 400;
-      throw error;
     }
 
     updateData.type = data.type;
@@ -491,68 +419,24 @@ const updateTransaction = async (
       new Date(data.transactionDate);
 
     if (Number.isNaN(parsedDate.getTime())) {
-      const error = new Error(
-        "Invalid transaction date"
-      );
-      error.statusCode = 400;
-      throw error;
+      throw new AppError("Invalid transaction date", 400);
     }
 
     updateData.transactionDate = parsedDate;
   }
 
   // Category
-  let selectedCategory = null;
-
   if (data.categoryId !== undefined) {
-    // Validate category UUID
     if (!isValidUuid(data.categoryId)) {
-      const error = new Error(
-        "Invalid category ID"
-      );
-      error.statusCode = 400;
-      throw error;
+      throw new AppError("Invalid category ID", 400);
     }
 
-    // Find category
-    selectedCategory =
-      await prisma.category.findUnique({
-        where: {
-          categoryId: data.categoryId,
-        },
-      });
-
-    // Category does not exist
-    if (!selectedCategory) {
-      const error = new Error(
-        "Category not found"
-      );
-      error.statusCode = 404;
-      throw error;
-    }
-
-    // Global/default category
-    const isGlobalCategory =
-      selectedCategory.isDefault === true &&
-      selectedCategory.userId === null;
-
-    // Custom category ownership
-    if (
-      !isGlobalCategory &&
-      selectedCategory.userId !== userId
-    ) {
-      const error = new Error(
-        "You do not have access to this category"
-      );
-      error.statusCode = 403;
-      throw error;
-    }
-
-    updateData.categoryId =
-      data.categoryId;
+    updateData.categoryId = data.categoryId;
   }
 
-  // Determine final type/category
+  // Re-resolve whichever category the transaction will end up with
+  // (whether or not it's being changed by this update) so its type stays
+  // consistent with the transaction's final type.
   const finalType =
     data.type ?? existingTransaction.type;
 
@@ -560,63 +444,23 @@ const updateTransaction = async (
     data.categoryId ??
     existingTransaction.categoryId;
 
-  // If category wasn't changed,
-  // load the existing category
-  if (selectedCategory === null) {
-    selectedCategory =
-      await prisma.category.findUnique({
-        where: {
-          categoryId: finalCategoryId,
-        },
-      });
-  }
-
-  // Category must exist
-  if (!selectedCategory) {
-    const error = new Error(
-      "Category not found"
-    );
-    error.statusCode = 404;
-    throw error;
-  }
-
-  // Verify category access even when
-  // category wasn't explicitly changed
-  const isGlobalCategory =
-    selectedCategory.isDefault === true &&
-    selectedCategory.userId === null;
-
-  if (
-    !isGlobalCategory &&
-    selectedCategory.userId !== userId
-  ) {
-    const error = new Error(
-      "You do not have access to this category"
-    );
-    error.statusCode = 403;
-    throw error;
-  }
+  const selectedCategory = await resolveAndAuthorizeCategory(
+    finalCategoryId,
+    userId
+  );
 
   // Transaction type must match category type
   if (
     selectedCategory.type !== finalType
   ) {
-    const error = new Error(
-      "Transaction type must match category type"
-    );
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Transaction type must match category type", 400);
   }
 
   // At least one valid field required
   if (
     Object.keys(updateData).length === 0
   ) {
-    const error = new Error(
-      "No valid fields provided for update"
-    );
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("No valid fields provided for update", 400);
   }
 
   // Update transaction
@@ -639,11 +483,7 @@ const deleteTransaction = async (
 
   // Validate transaction UUID
   if (!isValidUuid(transactionId)) {
-    const error = new Error(
-      "Invalid transaction ID"
-    );
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Invalid transaction ID", 400);
   }
 
   // Verify ownership
@@ -656,11 +496,7 @@ const deleteTransaction = async (
     });
 
   if (!transaction) {
-    const error = new Error(
-      "Transaction not found"
-    );
-    error.statusCode = 404;
-    throw error;
+    throw new AppError("Transaction not found", 404);
   }
 
   // Delete only user's transaction

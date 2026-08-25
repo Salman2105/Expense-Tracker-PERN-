@@ -10,7 +10,7 @@ const generateToken = (userId, username, email) => {
     },
     env.jwtSecret,
     {
-      expiresIn: "1d",
+      expiresIn: env.jwtExpiresIn,
     }
   );
 };

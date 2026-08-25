@@ -1,9 +1,6 @@
 const categoryService = require("../services/category.service");
 
-const {
-    successResponse,
-    errorResponse,
-} = require("../utils/response.util");
+const { successResponse } = require("../utils/response.util");
 
 /**
  * Create Category
@@ -30,19 +27,7 @@ const createCategory = async (req, res, next) => {
             category
         );
     } catch (error) {
-        console.error(
-            "Create category error:",
-            error.message
-        );
-
-        return errorResponse(
-            res,
-            error.statusCode || 500,
-            error.statusCode
-                ? error.message
-                : "Failed to create category",
-            error.code || "CREATE_CATEGORY_ERROR"
-        );
+        next(error);
     }
 };
 
@@ -63,19 +48,7 @@ const getCategories = async (req, res, next) => {
             categories
         );
     } catch (error) {
-        console.error(
-            "Get categories error:",
-            error.message
-        );
-
-        return errorResponse(
-            res,
-            error.statusCode || 500,
-            error.statusCode
-                ? error.message
-                : "Failed to fetch categories",
-            error.code || "GET_CATEGORIES_ERROR"
-        );
+        next(error);
     }
 };
 
@@ -108,26 +81,14 @@ const updateCategory = async (req, res, next) => {
             category
         );
     } catch (error) {
-        console.error(
-            "Update category error:",
-            error.message
-        );
-
-        return errorResponse(
-            res,
-            error.statusCode || 500,
-            error.statusCode
-                ? error.message
-                : "Failed to update category",
-            error.code || "UPDATE_CATEGORY_ERROR"
-        );
+        next(error);
     }
 };
 
 /**
  * Delete Category
  */
-const deleteCategory = async (req, res) => {
+const deleteCategory = async (req, res, next) => {
     try {
         const { categoryId } = req.params;
 
@@ -144,19 +105,7 @@ const deleteCategory = async (req, res) => {
             result
         );
     } catch (error) {
-        console.error(
-            "Delete category error:",
-            error.message
-        );
-
-        return errorResponse(
-            res,
-            error.statusCode || 500,
-            error.statusCode
-                ? error.message
-                : "Failed to delete category",
-            error.code || "DELETE_CATEGORY_ERROR"
-        );
+        next(error);
     }
 };
 

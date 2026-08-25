@@ -6,11 +6,10 @@ const helmet = require("helmet");
 const cors = require("cors");
 const hpp = require("hpp");
 const requestLogger = require("./middleware/requestLogger.middleware");
-const logger = require("./middleware/logger");
 const errorMiddleware = require("./middleware/error.middleware");
 
+const healthRoutes = require("./routes/health.routes");
 const authRoutes = require("./routes/auth.routes");
-const prisma = require("../config/prisma");
 const userRoutes = require("./routes/user.routes");
 const userSettingsRoutes = require("./routes/userSettings.routes");
 const accountRoutes = require("./routes/account.routes");
@@ -26,19 +25,15 @@ const {
 
 const app = express();
 
+// Secure HTTP response headers
+app.use(helmet());
+
 // Swagger
 app.use(
   "/api-docs",
   swaggerUi.serve,
   swaggerUi.setup(swaggerSpec)
 );
-
-
-
-// Secure HTTP response headers
-app.use(helmet());
-
-
 
 // Cross-Origin Resource Sharing
 app.use(
@@ -49,46 +44,20 @@ app.use(
   })
 );
 
-// Prevent HTTP parameter pollution
-app.use(hpp());
-
-
 // Limit JSON request body size
 app.use(express.json({ limit: "10kb" }));
+
+// Prevent HTTP parameter pollution (must run after body parsing so it can
+// also de-duplicate array-polluted fields in the parsed body, not just the
+// query string).
+app.use(hpp());
 
 // Request logging
 app.use(requestLogger);
 
-
-app.get("/db-check", async (req, res) => {
-  try {
-    const usersCount = await prisma.user.count();
-
-    res.json({
-      ok: true,
-      usersCount,
-    });
-  } catch (error) {
-    res.status(500).json({
-      ok: false,
-      error: error.message,
-    });
-  }
-});
-
-
-
 startAccountCleanupJob();
 
-
-
-app.get("/", (req, res) => {
-  res.json({
-    message: "Expense Tracker API is running",
-  });
-});
-
-
+app.use("/", healthRoutes);
 
 app.use("/api/auth", authRoutes);
 
@@ -103,45 +72,9 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/transactions", transactionRoutes);
 
 app.use("/api/dashboard", dashboardRoutes);
+
+// Must be registered last: catches errors from every route above,
+// including malformed-JSON body-parser errors from express.json().
 app.use(errorMiddleware);
-
-
-
-app.use((error, req, res, next) => {
-  // Malformed JSON
-  if (
-    error instanceof SyntaxError &&
-    error.status === 400 &&
-    "body" in error
-  ) {
-    return res.status(400).json({
-      success: false,
-      message: "Request body contains invalid JSON",
-    });
-  }
-
-  const statusCode = Number.isInteger(error.statusCode)
-    ? error.statusCode
-    : Number.isInteger(error.status) && error.status >= 400
-      ? error.status
-      : 500;
-
-  if (statusCode >= 500) {
-    logger.error("Unhandled application error", {
-      message: error.message,
-      stack: error.stack,
-      method: req.method,
-      url: req.originalUrl,
-    });
-  }
-
-  return res.status(statusCode).json({
-    success: false,
-    message:
-      statusCode >= 500
-        ? "Internal server error"
-        : error.message,
-  });
-});
 
 module.exports = app;
