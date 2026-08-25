@@ -1,20 +1,13 @@
-const prisma = require("../../config/prisma");
 const { validate: isValidUuid } = require("uuid");
+const AppError = require("../utils/AppError");
+const userSettingsRepository = require("../repositories/userSettings.repository");
 
 /**
  * Validate authenticated user ID.
  */
 const validateUserId = (userId) => {
-  if (!userId || typeof userId !== "string") {
-    const error = new Error("Invalid user ID");
-    error.code = "INVALID_USER_ID";
-    throw error;
-  }
-
-  if (!isValidUuid(userId)) {
-    const error = new Error("Invalid user ID");
-    error.code = "INVALID_USER_ID";
-    throw error;
+  if (!userId || typeof userId !== "string" || !isValidUuid(userId)) {
+    throw new AppError("Invalid user ID", 400, "INVALID_USER_ID");
   }
 };
 
@@ -24,11 +17,7 @@ const validateUserId = (userId) => {
 const getUserSettings = async (userId) => {
   validateUserId(userId);
 
-  return prisma.userSettings.findUnique({
-    where: {
-      userId,
-    },
-  });
+  return userSettingsRepository.findByUserId(userId);
 };
 
 /**
@@ -40,8 +29,8 @@ const createUserSettings = async (
 ) => {
   validateUserId(userId);
 
-  return prisma.userSettings.create({
-    data: {
+  try {
+    return await userSettingsRepository.create({
       userId,
 
       theme:
@@ -68,8 +57,18 @@ const createUserSettings = async (
         budgetAlerts:
           data.budgetAlerts,
       }),
-    },
-  });
+    });
+  } catch (error) {
+    if (error?.code === "P2002") {
+      throw new AppError(
+        "User settings already exist",
+        409,
+        "SETTINGS_ALREADY_EXIST"
+      );
+    }
+
+    throw error;
+  }
 };
 
 /**
@@ -106,12 +105,19 @@ const updateUserSettings = async (
       data.budgetAlerts;
   }
 
-  return prisma.userSettings.update({
-    where: {
-      userId,
-    },
-    data: updateData,
-  });
+  try {
+    return await userSettingsRepository.update(userId, updateData);
+  } catch (error) {
+    if (error?.code === "P2025") {
+      throw new AppError(
+        "User settings not found",
+        404,
+        "SETTINGS_NOT_FOUND"
+      );
+    }
+
+    throw error;
+  }
 };
 
 module.exports = {

@@ -1,179 +1,11 @@
 const express = require("express");
-const userSettingsService = require("../services/userSettings.service");
+const userSettingsController = require("../controllers/userSettings.controller");
 const authMiddleware = require("../middleware/auth.middleware");
 const {
   validateUserSettings,
 } = require("../middleware/userSettings.validation");
 
 const router = express.Router();
-
-/**
- * GET /api/user/me/settings
- */
-const getMySettings = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication required",
-      });
-    }
-
-    let settings =
-      await userSettingsService.getUserSettings(
-        userId
-      );
-
-    /**
-     * Automatically create default settings
-     * when the user doesn't have a settings record.
-     */
-    if (!settings) {
-      settings =
-        await userSettingsService.createUserSettings(
-          userId,
-          {
-            theme: "SYSTEM",
-            preferredCurrency: "PKR",
-            language: "en",
-            emailNotifications: true,
-            budgetAlerts: true,
-          }
-        );
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: settings,
-    });
-  } catch (error) {
-    console.error(
-      "Get settings error:",
-      error
-    );
-
-    if (error.code === "INVALID_USER_ID") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid user ID",
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to get user settings",
-    });
-  }
-};
-
-/**
- * POST /api/user/me/settings
- */
-const createMySettings = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication required",
-      });
-    }
-
-    const settings =
-      await userSettingsService.createUserSettings(
-        userId,
-        req.body
-      );
-
-    return res.status(201).json({
-      success: true,
-      message:
-        "User settings created successfully",
-      data: settings,
-    });
-  } catch (error) {
-    console.error(
-      "Create settings error:",
-      error
-    );
-
-    if (error.code === "INVALID_USER_ID") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid user ID",
-      });
-    }
-
-    if (error.code === "P2002") {
-      return res.status(409).json({
-        success: false,
-        message: "User settings already exist",
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to create user settings",
-    });
-  }
-};
-
-/**
- * PATCH /api/user/me/settings
- */
-const updateMySettings = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication required",
-      });
-    }
-
-    const settings =
-      await userSettingsService.updateUserSettings(
-        userId,
-        req.body
-      );
-
-    return res.status(200).json({
-      success: true,
-      message:
-        "User settings updated successfully",
-      data: settings,
-    });
-  } catch (error) {
-    console.error(
-      "Update settings error:",
-      error
-    );
-
-    if (error.code === "INVALID_USER_ID") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid user ID",
-      });
-    }
-
-    if (error.code === "P2025") {
-      return res.status(404).json({
-        success: false,
-        message: "User settings not found",
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message:
-        "Failed to update user settings",
-    });
-  }
-};
 
 /**
  * @swagger
@@ -198,7 +30,7 @@ const updateMySettings = async (req, res) => {
 router.get(
   "/me/settings",
   authMiddleware,
-  getMySettings
+  userSettingsController.getMySettings
 );
 
 /**
@@ -260,7 +92,7 @@ router.post(
   "/me/settings",
   authMiddleware,
   validateUserSettings,
-  createMySettings
+  userSettingsController.createMySettings
 );
 
 /**
@@ -322,7 +154,7 @@ router.patch(
   "/me/settings",
   authMiddleware,
   validateUserSettings,
-  updateMySettings
+  userSettingsController.updateMySettings
 );
 
 module.exports = router;

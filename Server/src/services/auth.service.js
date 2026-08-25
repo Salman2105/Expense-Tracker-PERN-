@@ -1,7 +1,8 @@
 const bcrypt = require("bcrypt");
 
-const prisma = require("../../config/prisma");
 const { generateToken } = require("../utils/jwt");
+const { BCRYPT_SALT_ROUNDS } = require("../constants");
+const userRepository = require("../repositories/user.repository");
 
 /**
  * Register a new user
@@ -14,14 +15,9 @@ const registerUser = async ({ username, email, password }) => {
   /**
    * Check whether email already exists
    */
-  const existingEmailUser = await prisma.user.findUnique({
-    where: {
-      email: normalizedEmail,
-    },
-    select: {
-      userId: true,
-    },
-  });
+  const existingEmailUser = await userRepository.findUserIdByEmail(
+    normalizedEmail
+  );
 
   if (existingEmailUser) {
     return {
@@ -33,14 +29,9 @@ const registerUser = async ({ username, email, password }) => {
   /**
    * Check whether username already exists
    */
-  const existingUsernameUser = await prisma.user.findUnique({
-    where: {
-      username: normalizedUsername,
-    },
-    select: {
-      userId: true,
-    },
-  });
+  const existingUsernameUser = await userRepository.findUserIdByUsername(
+    normalizedUsername
+  );
 
   if (existingUsernameUser) {
     return {
@@ -54,29 +45,19 @@ const registerUser = async ({ username, email, password }) => {
    */
   const passwordHash = await bcrypt.hash(
     password,
-    10
+    BCRYPT_SALT_ROUNDS
   );
 
   /**
    * Create user
    */
   try {
-    const user = await prisma.user.create({
-      data: {
-        username: normalizedUsername,
-        email: normalizedEmail,
-        passwordHash,
-        status: "ACTIVE",
-        deletedAt: null,
-      },
-      select: {
-        userId: true,
-        username: true,
-        email: true,
-        status: true,
-        deletedAt: true,
-        createdAt: true,
-      },
+    const user = await userRepository.create({
+      username: normalizedUsername,
+      email: normalizedEmail,
+      passwordHash,
+      status: "ACTIVE",
+      deletedAt: null,
     });
 
     return user;
@@ -125,11 +106,7 @@ const loginUser = async ({ email, password }) => {
   /**
    * Find user
    */
-  const user = await prisma.user.findUnique({
-    where: {
-      email: normalizedEmail,
-    },
-  });
+  const user = await userRepository.findByEmail(normalizedEmail);
 
   /**
    * Do not reveal whether the email exists.

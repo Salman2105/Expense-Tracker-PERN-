@@ -5,7 +5,7 @@ const {
     errorResponse,
 } = require("../utils/response.util");
 
-const getDashboard = async (req, res) => {
+const getDashboard = async (req, res, next) => {
     try {
         // authMiddleware must provide req.user.userId
         const userId = req.user.userId;
@@ -28,18 +28,7 @@ const getDashboard = async (req, res) => {
             dashboard
         );
     } catch (error) {
-        console.error("Get dashboard error:", error);
-
-        const statusCode = error.statusCode || 500;
-
-        return errorResponse(
-            res,
-            statusCode,
-            statusCode === 500
-                ? "Failed to fetch dashboard data"
-                : error.message,
-            error.code || "DASHBOARD_ERROR"
-        );
+        next(error);
     }
 };
 

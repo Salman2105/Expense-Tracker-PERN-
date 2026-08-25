@@ -1,6 +1,8 @@
 const crypto = require("crypto");
-const prisma = require("../../config/prisma");
 const { validate: isValidUuid } = require("uuid");
+const { ACCOUNT_RETENTION_DAYS } = require("../constants");
+const AppError = require("../utils/AppError");
+const userRepository = require("../repositories/user.repository");
 
 /**
  * Validate account user ID.
@@ -9,16 +11,8 @@ const { validate: isValidUuid } = require("uuid");
  * Normally the ID comes from auth.middleware.js.
  */
 const validateUserId = (userId) => {
-  if (!userId || typeof userId !== "string") {
-    const error = new Error("Invalid user ID");
-    error.code = "INVALID_USER_ID";
-    throw error;
-  }
-
-  if (!isValidUuid(userId)) {
-    const error = new Error("Invalid user ID");
-    error.code = "INVALID_USER_ID";
-    throw error;
+  if (!userId || typeof userId !== "string" || !isValidUuid(userId)) {
+    throw new AppError("Invalid user ID", 400, "INVALID_USER_ID");
   }
 };
 
@@ -42,6 +36,24 @@ const createEmailHash = (email) => {
 };
 
 /**
+ * Get an account's status (used by GET /api/account/status).
+ */
+const getAccountStatus = async (userId) => {
+  validateUserId(userId);
+
+  const user = await userRepository.findAccountStatusById(userId);
+
+  if (!user) {
+    throw new AppError("User not found", 404, "USER_NOT_FOUND");
+  }
+
+  return {
+    status: user.status,
+    deletedAt: user.deletedAt,
+  };
+};
+
+/**
  * Soft-delete an account.
  *
  * The original email is hashed for retention/audit purposes.
@@ -51,41 +63,26 @@ const createEmailHash = (email) => {
 const deleteAccount = async (userId) => {
   validateUserId(userId);
 
-  const user = await prisma.user.findUnique({
-    where: {
-      userId,
-    },
-    select: {
-      email: true,
-      status: true,
-      deletedAt: true,
-    },
-  });
+  const user = await userRepository.findDeletionEligibilityById(userId);
 
   if (!user) {
-    const error = new Error("User not found");
-    error.code = "USER_NOT_FOUND";
-    throw error;
+    throw new AppError("User not found", 404, "USER_NOT_FOUND");
   }
 
   if (user.deletedAt) {
-    const error = new Error(
-      "Account has already been deleted"
+    throw new AppError(
+      "Account has already been deleted",
+      400,
+      "ACCOUNT_ALREADY_DELETED"
     );
-
-    error.code = "ACCOUNT_ALREADY_DELETED";
-
-    throw error;
   }
 
   if (user.status === "SUSPENDED") {
-    const error = new Error(
-      "Suspended accounts cannot be deleted"
+    throw new AppError(
+      "Suspended accounts cannot be deleted",
+      403,
+      "ACCOUNT_SUSPENDED"
     );
-
-    error.code = "ACCOUNT_SUSPENDED";
-
-    throw error;
   }
 
   const deletedAt = new Date();
@@ -102,21 +99,11 @@ const deleteAccount = async (userId) => {
   const mangledEmail =
     `deleted_${userId}_${timestamp}@deleted.local`;
 
-  const deletedUser = await prisma.user.update({
-    where: {
-      userId,
-    },
-    data: {
-      username: mangledUsername,
-      email: mangledEmail,
-      originalEmailHash,
-      deletedAt,
-    },
-    select: {
-      userId: true,
-      deletedAt: true,
-      originalEmailHash: true,
-    },
+  const deletedUser = await userRepository.applySoftDelete(userId, {
+    username: mangledUsername,
+    email: mangledEmail,
+    originalEmailHash,
+    deletedAt,
   });
 
   return {
@@ -133,23 +120,10 @@ const getAccountsEligibleForCleanup = async () => {
   const retentionDate = new Date();
 
   retentionDate.setDate(
-    retentionDate.getDate() - 30
+    retentionDate.getDate() - ACCOUNT_RETENTION_DAYS
   );
 
-  return prisma.user.findMany({
-    where: {
-      deletedAt: {
-        not: null,
-        lte: retentionDate,
-      },
-    },
-    select: {
-      userId: true,
-      email: true,
-      originalEmailHash: true,
-      deletedAt: true,
-    },
-  });
+  return userRepository.findEligibleForCleanup(retentionDate);
 };
 
 /**
@@ -158,17 +132,7 @@ const getAccountsEligibleForCleanup = async () => {
 const anonymizeAccount = async (userId) => {
   validateUserId(userId);
 
-  const user = await prisma.user.findUnique({
-    where: {
-      userId,
-    },
-    select: {
-      userId: true,
-      email: true,
-      originalEmailHash: true,
-      deletedAt: true,
-    },
-  });
+  const user = await userRepository.findAnonymizationFields(userId);
 
   if (!user) {
     throw new Error("User not found");
@@ -184,17 +148,12 @@ const anonymizeAccount = async (userId) => {
     );
   }
 
-  await prisma.user.update({
-    where: {
-      userId,
-    },
-    data: {
-      username: `deleted_${userId}`,
-      email: `deleted_${userId}@deleted.local`,
-      passwordHash: "DELETED",
-      profilePicture: null,
-      originalEmailHash: null,
-    },
+  await userRepository.anonymize(userId, {
+    username: `deleted_${userId}`,
+    email: `deleted_${userId}@deleted.local`,
+    passwordHash: "DELETED",
+    profilePicture: null,
+    originalEmailHash: null,
   });
 
   return {
@@ -210,17 +169,7 @@ const anonymizeAccount = async (userId) => {
 const hardDeleteAccount = async (userId) => {
   validateUserId(userId);
 
-  const user = await prisma.user.findUnique({
-    where: {
-      userId,
-    },
-    select: {
-      userId: true,
-      email: true,
-      originalEmailHash: true,
-      deletedAt: true,
-    },
-  });
+  const user = await userRepository.findAnonymizationFields(userId);
 
   if (!user) {
     throw new Error("User not found");
@@ -250,11 +199,7 @@ const hardDeleteAccount = async (userId) => {
     );
   }
 
-  await prisma.user.delete({
-    where: {
-      userId,
-    },
-  });
+  await userRepository.deleteById(userId);
 
   return {
     userId,
@@ -331,6 +276,7 @@ const processEligibleAccounts = async () => {
 };
 
 module.exports = {
+  getAccountStatus,
   deleteAccount,
   createEmailHash,
   getAccountsEligibleForCleanup,
