@@ -4,6 +4,11 @@ Scope: `Server/` only. No frontend files were touched. No route paths, HTTP
 methods, or (except where explicitly called out below) response shapes were
 changed. Branch: `refactor/backend-cleanup`.
 
+**Update**: a repository layer (`src/repositories/`) was added in a
+follow-up pass — see "Repository Layer (follow-up)" near the end of this
+report for that change specifically; everything else below describes the
+original refactor.
+
 ## Architecture Before
 
 The backend already had a reasonable routes/controllers/services/middleware
@@ -413,3 +418,51 @@ per "never add/remove a dependency outside what's stated here."
   task instructions require actually running the tests rather than
   skipping them. `tests/setupTestDb.js` logs a clear message identifying
   the problem if the connection fails.
+
+## Repository Layer (follow-up)
+
+Added `src/repositories/` — one file per Prisma model
+(`user.repository.js`, `category.repository.js`,
+`transaction.repository.js`, `userSettings.repository.js`). Every direct
+Prisma call anywhere in the app (services, `auth.middleware.js`,
+`health.controller.js`, `auth.controller.js#getMe`) was moved into a
+named repository function; nothing outside `src/repositories/` imports
+`config/prisma` anymore except `category.service.js`, which still owns
+the one `prisma.$transaction(async (tx) => ...)` orchestration for
+atomically reassigning a deleted category's transactions to
+"Uncategorized" — that's a business-level decision ("do these three
+writes atomically"), not a query, so it stays in the service; the actual
+reads/writes inside it call repository functions with the transaction's
+`tx` client passed through.
+
+**Convention**: every repository function accepts an optional trailing
+`client` parameter (default: the shared Prisma singleton), so any write
+that needs to be part of an atomic transaction can be composed by passing
+`tx` instead of duplicating query logic inside the `$transaction`
+callback.
+
+**Naming, not generic CRUD**: rather than one generic
+`findById(id, select)` per model, each repository function is named for
+what it's actually used for (e.g. `findAccountStatusById`,
+`findDeletionEligibilityById`, `findAnonymizationFields`,
+`findAuthProfileById`, `findAuthContextById` — five different
+`User`-by-ID reads with five different `select` shapes, because five
+different call sites need five different fields). This was a deliberate
+choice: a single generic finder that took an arbitrary `select` object
+would leak Prisma's query shape into every caller and make it easy to
+accidentally over-fetch (e.g. a route selecting `passwordHash` when it
+didn't need to) — the whole point of a repository layer is to keep that
+concern contained.
+
+One side effect worth calling out: `transaction.repository.js#findOwnedById`
+replaced three identical `findFirst({ where: { transactionId, userId } })`
+call sites in `transaction.service.js` (get/update/delete) with one
+shared function — an incidental DRY win from doing this extraction
+carefully rather than mechanically.
+
+**Verified**: all 58 tests still pass unchanged, lint is clean, and a full
+live-server smoke test was re-run (register → login → me → create
+category → create transaction → dashboard → delete category, the last of
+which exercises the `$transaction` + repository composition specifically)
+with identical results to before this change. No behavior changed by this
+follow-up — it's a pure structural move.

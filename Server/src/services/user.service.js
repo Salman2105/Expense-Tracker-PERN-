@@ -1,23 +1,10 @@
-const prisma = require("../../config/prisma");
 const bcrypt = require("bcrypt");
 const { BCRYPT_SALT_ROUNDS } = require("../constants");
 const AppError = require("../utils/AppError");
+const userRepository = require("../repositories/user.repository");
 
 const getUserProfile = async (userId) => {
-  return await prisma.user.findUnique({
-    where: {
-      userId,
-    },
-    select: {
-      userId: true,
-      username: true,
-      email: true,
-      profilePicture: true,
-      status: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  return userRepository.findProfileById(userId);
 };
 
 const updateUserProfile = async (userId, data) => {
@@ -45,21 +32,7 @@ const updateUserProfile = async (userId, data) => {
   }
 
   try {
-    return await prisma.user.update({
-      where: {
-        userId,
-      },
-      data: updateData,
-      select: {
-        userId: true,
-        username: true,
-        email: true,
-        profilePicture: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    return await userRepository.updateProfile(userId, updateData);
   } catch (error) {
     if (error?.code === "P2002") {
       throw new AppError(
@@ -82,14 +55,7 @@ const changeUserPassword = async (
   currentPassword,
   newPassword
 ) => {
-  const user = await prisma.user.findUnique({
-    where: {
-      userId,
-    },
-    select: {
-      passwordHash: true,
-    },
-  });
+  const user = await userRepository.findPasswordHashById(userId);
 
   if (!user) {
     throw new AppError("User not found", 404, "USER_NOT_FOUND");
@@ -138,14 +104,7 @@ const changeUserPassword = async (
   /**
    * Update password.
    */
-  await prisma.user.update({
-    where: {
-      userId,
-    },
-    data: {
-      passwordHash: newPasswordHash,
-    },
-  });
+  await userRepository.updatePasswordHash(userId, newPasswordHash);
 };
 
 module.exports = {

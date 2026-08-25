@@ -1,5 +1,5 @@
-const prisma = require("../../config/prisma");
 const authService = require("../services/auth.service");
+const userRepository = require("../repositories/user.repository");
 
 const {
     successResponse,
@@ -108,21 +108,7 @@ const getMe = async (req, res) => {
             );
         }
 
-        const user = await prisma.user.findUnique({
-            where: {
-                userId,
-            },
-            select: {
-                userId: true,
-                username: true,
-                email: true,
-                profilePicture: true,
-                status: true,
-                deletedAt: true,
-                createdAt: true,
-                updatedAt: true,
-            },
-        });
+        const user = await userRepository.findAuthProfileById(userId);
 
         if (!user) {
             return errorResponse(

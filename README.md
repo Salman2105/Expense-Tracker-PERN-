@@ -63,7 +63,8 @@ Expense Tracker/
 │   │   ├── app.js               Express app wiring (middleware, routes)
 │   │   ├── routes/               endpoint definitions per resource
 │   │   ├── controllers/          HTTP request/response handling
-│   │   ├── services/             business logic + Prisma queries
+│   │   ├── services/             business logic + orchestration
+│   │   ├── repositories/         all Prisma queries, one file per model
 │   │   ├── middleware/           auth, validation, rate limiting, logging
 │   │   ├── constants/            shared cross-cutting constants
 │   │   ├── utils/                AppError, JWT helpers, logger, response shape

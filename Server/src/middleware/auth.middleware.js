@@ -1,8 +1,8 @@
 const env = require("../../config/env");
 const jwt = require("jsonwebtoken");
-const prisma = require("../../config/prisma");
 const { validate: isValidUuid } = require("uuid");
 const { errorResponse } = require("../utils/response.util");
+const userRepository = require("../repositories/user.repository");
 
 const authMiddleware = async (req, res, next) => {
   try {
@@ -44,18 +44,7 @@ const authMiddleware = async (req, res, next) => {
     }
 
     // 6. Find authenticated user
-    const user = await prisma.user.findUnique({
-      where: {
-        userId: decoded.userId,
-      },
-      select: {
-        userId: true,
-        username: true,
-        email: true,
-        status: true,
-        deletedAt: true,
-      },
-    });
+    const user = await userRepository.findAuthContextById(decoded.userId);
 
     // 7. User must exist
     if (!user) {

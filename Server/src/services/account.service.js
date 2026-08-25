@@ -1,8 +1,8 @@
 const crypto = require("crypto");
-const prisma = require("../../config/prisma");
 const { validate: isValidUuid } = require("uuid");
 const { ACCOUNT_RETENTION_DAYS } = require("../constants");
 const AppError = require("../utils/AppError");
+const userRepository = require("../repositories/user.repository");
 
 /**
  * Validate account user ID.
@@ -41,16 +41,7 @@ const createEmailHash = (email) => {
 const getAccountStatus = async (userId) => {
   validateUserId(userId);
 
-  const user = await prisma.user.findUnique({
-    where: {
-      userId,
-    },
-    select: {
-      userId: true,
-      status: true,
-      deletedAt: true,
-    },
-  });
+  const user = await userRepository.findAccountStatusById(userId);
 
   if (!user) {
     throw new AppError("User not found", 404, "USER_NOT_FOUND");
@@ -72,16 +63,7 @@ const getAccountStatus = async (userId) => {
 const deleteAccount = async (userId) => {
   validateUserId(userId);
 
-  const user = await prisma.user.findUnique({
-    where: {
-      userId,
-    },
-    select: {
-      email: true,
-      status: true,
-      deletedAt: true,
-    },
-  });
+  const user = await userRepository.findDeletionEligibilityById(userId);
 
   if (!user) {
     throw new AppError("User not found", 404, "USER_NOT_FOUND");
@@ -117,21 +99,11 @@ const deleteAccount = async (userId) => {
   const mangledEmail =
     `deleted_${userId}_${timestamp}@deleted.local`;
 
-  const deletedUser = await prisma.user.update({
-    where: {
-      userId,
-    },
-    data: {
-      username: mangledUsername,
-      email: mangledEmail,
-      originalEmailHash,
-      deletedAt,
-    },
-    select: {
-      userId: true,
-      deletedAt: true,
-      originalEmailHash: true,
-    },
+  const deletedUser = await userRepository.applySoftDelete(userId, {
+    username: mangledUsername,
+    email: mangledEmail,
+    originalEmailHash,
+    deletedAt,
   });
 
   return {
@@ -151,20 +123,7 @@ const getAccountsEligibleForCleanup = async () => {
     retentionDate.getDate() - ACCOUNT_RETENTION_DAYS
   );
 
-  return prisma.user.findMany({
-    where: {
-      deletedAt: {
-        not: null,
-        lte: retentionDate,
-      },
-    },
-    select: {
-      userId: true,
-      email: true,
-      originalEmailHash: true,
-      deletedAt: true,
-    },
-  });
+  return userRepository.findEligibleForCleanup(retentionDate);
 };
 
 /**
@@ -173,17 +132,7 @@ const getAccountsEligibleForCleanup = async () => {
 const anonymizeAccount = async (userId) => {
   validateUserId(userId);
 
-  const user = await prisma.user.findUnique({
-    where: {
-      userId,
-    },
-    select: {
-      userId: true,
-      email: true,
-      originalEmailHash: true,
-      deletedAt: true,
-    },
-  });
+  const user = await userRepository.findAnonymizationFields(userId);
 
   if (!user) {
     throw new Error("User not found");
@@ -199,17 +148,12 @@ const anonymizeAccount = async (userId) => {
     );
   }
 
-  await prisma.user.update({
-    where: {
-      userId,
-    },
-    data: {
-      username: `deleted_${userId}`,
-      email: `deleted_${userId}@deleted.local`,
-      passwordHash: "DELETED",
-      profilePicture: null,
-      originalEmailHash: null,
-    },
+  await userRepository.anonymize(userId, {
+    username: `deleted_${userId}`,
+    email: `deleted_${userId}@deleted.local`,
+    passwordHash: "DELETED",
+    profilePicture: null,
+    originalEmailHash: null,
   });
 
   return {
@@ -225,17 +169,7 @@ const anonymizeAccount = async (userId) => {
 const hardDeleteAccount = async (userId) => {
   validateUserId(userId);
 
-  const user = await prisma.user.findUnique({
-    where: {
-      userId,
-    },
-    select: {
-      userId: true,
-      email: true,
-      originalEmailHash: true,
-      deletedAt: true,
-    },
-  });
+  const user = await userRepository.findAnonymizationFields(userId);
 
   if (!user) {
     throw new Error("User not found");
@@ -265,11 +199,7 @@ const hardDeleteAccount = async (userId) => {
     );
   }
 
-  await prisma.user.delete({
-    where: {
-      userId,
-    },
-  });
+  await userRepository.deleteById(userId);
 
   return {
     userId,
