@@ -5,7 +5,7 @@ const {
     errorResponse,
 } = require("../utils/response.util");
 
-const getMyProfile = async (req, res) => {
+const getMyProfile = async (req, res, next) => {
     try {
         const userId = req.user.id;
 
@@ -27,18 +27,11 @@ const getMyProfile = async (req, res) => {
             user
         );
     } catch (error) {
-        console.error("Get profile error:", error);
-
-        return errorResponse(
-            res,
-            500,
-            "Failed to get user profile",
-            "GET_PROFILE_ERROR"
-        );
+        next(error);
     }
 };
 
-const updateMyProfile = async (req, res) => {
+const updateMyProfile = async (req, res, next) => {
     try {
         const userId = req.user.id;
 
@@ -62,36 +55,11 @@ const updateMyProfile = async (req, res) => {
             updatedUser
         );
     } catch (error) {
-        console.error("Update profile error:", error);
-
-        if (error.code === "P2002") {
-            return errorResponse(
-                res,
-                409,
-                "Username is already taken",
-                "USERNAME_ALREADY_TAKEN"
-            );
-        }
-
-        if (error.code === "P2025") {
-            return errorResponse(
-                res,
-                404,
-                "User not found",
-                "USER_NOT_FOUND"
-            );
-        }
-
-        return errorResponse(
-            res,
-            500,
-            "Failed to update user profile",
-            "UPDATE_PROFILE_ERROR"
-        );
+        next(error);
     }
 };
 
-const changePassword = async (req, res) => {
+const changePassword = async (req, res, next) => {
     try {
         const userId = req.user.id;
 
@@ -112,41 +80,7 @@ const changePassword = async (req, res) => {
             "Password changed successfully"
         );
     } catch (error) {
-        if (error.code === "INVALID_CURRENT_PASSWORD") {
-            return errorResponse(
-                res,
-                400,
-                "Current password is incorrect",
-                "INVALID_CURRENT_PASSWORD"
-            );
-        }
-
-        if (error.code === "SAME_PASSWORD") {
-            return errorResponse(
-                res,
-                400,
-                "New password must be different from current password",
-                "SAME_PASSWORD"
-            );
-        }
-
-        console.error("Change password error:", error);
-
-        if (error.code === "USER_NOT_FOUND") {
-            return errorResponse(
-                res,
-                404,
-                "User not found",
-                "USER_NOT_FOUND"
-            );
-        }
-
-        return errorResponse(
-            res,
-            500,
-            "Failed to change password",
-            "CHANGE_PASSWORD_ERROR"
-        );
+        next(error);
     }
 };
 

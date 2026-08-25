@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 
 const prisma = require("../../config/prisma");
 const { generateToken } = require("../utils/jwt");
+const { BCRYPT_SALT_ROUNDS } = require("../constants");
 
 /**
  * Register a new user
@@ -54,7 +55,7 @@ const registerUser = async ({ username, email, password }) => {
    */
   const passwordHash = await bcrypt.hash(
     password,
-    10
+    BCRYPT_SALT_ROUNDS
   );
 
   /**

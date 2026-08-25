@@ -1,5 +1,7 @@
 const prisma = require("../../config/prisma");
 const bcrypt = require("bcrypt");
+const { BCRYPT_SALT_ROUNDS } = require("../constants");
+const AppError = require("../utils/AppError");
 
 const getUserProfile = async (userId) => {
   return await prisma.user.findUnique({
@@ -35,13 +37,11 @@ const updateUserProfile = async (userId, data) => {
    * Prevent empty PATCH requests from reaching Prisma.
    */
   if (Object.keys(updateData).length === 0) {
-    const error = new Error(
-      "At least one profile field must be provided"
+    throw new AppError(
+      "At least one profile field must be provided",
+      400,
+      "EMPTY_UPDATE"
     );
-
-    error.code = "EMPTY_UPDATE";
-
-    throw error;
   }
 
   try {
@@ -62,13 +62,15 @@ const updateUserProfile = async (userId, data) => {
     });
   } catch (error) {
     if (error?.code === "P2002") {
-      const prismaError = new Error(
-        "Username is already taken"
+      throw new AppError(
+        "Username is already taken",
+        409,
+        "USERNAME_ALREADY_TAKEN"
       );
+    }
 
-      prismaError.code = "P2002";
-
-      throw prismaError;
+    if (error?.code === "P2025") {
+      throw new AppError("User not found", 404, "USER_NOT_FOUND");
     }
 
     throw error;
@@ -90,11 +92,7 @@ const changeUserPassword = async (
   });
 
   if (!user) {
-    const error = new Error("User not found");
-
-    error.code = "USER_NOT_FOUND";
-
-    throw error;
+    throw new AppError("User not found", 404, "USER_NOT_FOUND");
   }
 
   /**
@@ -106,13 +104,11 @@ const changeUserPassword = async (
   );
 
   if (!isPasswordCorrect) {
-    const error = new Error(
-      "Current password is incorrect"
+    throw new AppError(
+      "Current password is incorrect",
+      400,
+      "INVALID_CURRENT_PASSWORD"
     );
-
-    error.code = "INVALID_CURRENT_PASSWORD";
-
-    throw error;
   }
 
   /**
@@ -124,13 +120,11 @@ const changeUserPassword = async (
   );
 
   if (isSamePassword) {
-    const error = new Error(
-      "New password must be different from current password"
+    throw new AppError(
+      "New password must be different from current password",
+      400,
+      "SAME_PASSWORD"
     );
-
-    error.code = "SAME_PASSWORD";
-
-    throw error;
   }
 
   /**
@@ -138,7 +132,7 @@ const changeUserPassword = async (
    */
   const newPasswordHash = await bcrypt.hash(
     newPassword,
-    12
+    BCRYPT_SALT_ROUNDS
   );
 
   /**

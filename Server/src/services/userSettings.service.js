@@ -1,20 +1,13 @@
 const prisma = require("../../config/prisma");
 const { validate: isValidUuid } = require("uuid");
+const AppError = require("../utils/AppError");
 
 /**
  * Validate authenticated user ID.
  */
 const validateUserId = (userId) => {
-  if (!userId || typeof userId !== "string") {
-    const error = new Error("Invalid user ID");
-    error.code = "INVALID_USER_ID";
-    throw error;
-  }
-
-  if (!isValidUuid(userId)) {
-    const error = new Error("Invalid user ID");
-    error.code = "INVALID_USER_ID";
-    throw error;
+  if (!userId || typeof userId !== "string" || !isValidUuid(userId)) {
+    throw new AppError("Invalid user ID", 400, "INVALID_USER_ID");
   }
 };
 
@@ -40,36 +33,48 @@ const createUserSettings = async (
 ) => {
   validateUserId(userId);
 
-  return prisma.userSettings.create({
-    data: {
-      userId,
+  try {
+    return await prisma.userSettings.create({
+      data: {
+        userId,
 
-      theme:
-        data.theme !== undefined
-          ? data.theme
-          : "SYSTEM",
+        theme:
+          data.theme !== undefined
+            ? data.theme
+            : "SYSTEM",
 
-      preferredCurrency:
-        data.preferredCurrency !== undefined
-          ? data.preferredCurrency
-          : "PKR",
+        preferredCurrency:
+          data.preferredCurrency !== undefined
+            ? data.preferredCurrency
+            : "PKR",
 
-      language:
-        data.language !== undefined
-          ? data.language
-          : "en",
+        language:
+          data.language !== undefined
+            ? data.language
+            : "en",
 
-      ...(data.emailNotifications !== undefined && {
-        emailNotifications:
-          data.emailNotifications,
-      }),
+        ...(data.emailNotifications !== undefined && {
+          emailNotifications:
+            data.emailNotifications,
+        }),
 
-      ...(data.budgetAlerts !== undefined && {
-        budgetAlerts:
-          data.budgetAlerts,
-      }),
-    },
-  });
+        ...(data.budgetAlerts !== undefined && {
+          budgetAlerts:
+            data.budgetAlerts,
+        }),
+      },
+    });
+  } catch (error) {
+    if (error?.code === "P2002") {
+      throw new AppError(
+        "User settings already exist",
+        409,
+        "SETTINGS_ALREADY_EXIST"
+      );
+    }
+
+    throw error;
+  }
 };
 
 /**
@@ -106,12 +111,24 @@ const updateUserSettings = async (
       data.budgetAlerts;
   }
 
-  return prisma.userSettings.update({
-    where: {
-      userId,
-    },
-    data: updateData,
-  });
+  try {
+    return await prisma.userSettings.update({
+      where: {
+        userId,
+      },
+      data: updateData,
+    });
+  } catch (error) {
+    if (error?.code === "P2025") {
+      throw new AppError(
+        "User settings not found",
+        404,
+        "SETTINGS_NOT_FOUND"
+      );
+    }
+
+    throw error;
+  }
 };
 
 module.exports = {

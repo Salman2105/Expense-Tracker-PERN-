@@ -2,6 +2,7 @@ const env = require("../../config/env");
 const jwt = require("jsonwebtoken");
 const prisma = require("../../config/prisma");
 const { validate: isValidUuid } = require("uuid");
+const { errorResponse } = require("../utils/response.util");
 
 const authMiddleware = async (req, res, next) => {
   try {
@@ -9,30 +10,21 @@ const authMiddleware = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (typeof authHeader !== "string") {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication token is required",
-      });
+      return errorResponse(res, 401, "Authentication token is required");
     }
 
     // 2. Extract token
     const bearerMatch = authHeader.match(/^Bearer\s+(\S+)$/i);
 
     if (!bearerMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication token is required",
-      });
+      return errorResponse(res, 401, "Authentication token is required");
     }
 
     const token = bearerMatch[1];
 
     // A JWT must contain exactly three non-empty segments.
     if (token.split(".").length !== 3) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid authentication token",
-      });
+      return errorResponse(res, 401, "Invalid authentication token");
     }
 
     // 3. Verify JWT
@@ -43,18 +35,12 @@ const authMiddleware = async (req, res, next) => {
 
     // 4. Make sure JWT contains a userId
     if (!decoded || !decoded.userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid authentication token",
-      });
+      return errorResponse(res, 401, "Invalid authentication token");
     }
 
     // 5. Validate userId UUID
     if (!isValidUuid(decoded.userId)) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid authentication token",
-      });
+      return errorResponse(res, 401, "Invalid authentication token");
     }
 
     // 6. Find authenticated user
@@ -73,26 +59,17 @@ const authMiddleware = async (req, res, next) => {
 
     // 7. User must exist
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "User not found",
-      });
+      return errorResponse(res, 401, "User not found");
     }
 
     // 8. Deleted account check
     if (user.deletedAt) {
-      return res.status(403).json({
-        success: false,
-        message: "Account has been deleted",
-      });
+      return errorResponse(res, 403, "Account has been deleted");
     }
 
     // 9. Suspended account check
     if (user.status === "SUSPENDED") {
-      return res.status(403).json({
-        success: false,
-        message: "Account is suspended",
-      });
+      return errorResponse(res, 403, "Account is suspended");
     }
 
     // 10. Attach authenticated user
@@ -111,33 +88,21 @@ const authMiddleware = async (req, res, next) => {
 
     // Invalid JWT
     if (error.name === "JsonWebTokenError") {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid authentication token",
-      });
+      return errorResponse(res, 401, "Invalid authentication token");
     }
 
     // Expired JWT
     if (error.name === "TokenExpiredError") {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication token has expired",
-      });
+      return errorResponse(res, 401, "Authentication token has expired");
     }
 
     // JWT not active yet
     if (error.name === "NotBeforeError") {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication token is not active",
-      });
+      return errorResponse(res, 401, "Authentication token is not active");
     }
 
     // Unexpected server/database error
-    return res.status(500).json({
-      success: false,
-      message: "Authentication failed",
-    });
+    return errorResponse(res, 500, "Authentication failed");
   }
 };
 

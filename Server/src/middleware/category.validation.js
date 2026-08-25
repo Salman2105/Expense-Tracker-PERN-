@@ -1,6 +1,7 @@
 const { validate: isValidUuid } = require("uuid");
+const { TRANSACTION_TYPES } = require("../constants");
 
-const VALID_CATEGORY_TYPES = ["INCOME", "EXPENSE"];
+const VALID_CATEGORY_TYPES = TRANSACTION_TYPES;
 
 const validateCreateCategory = (req, res, next) => {
   const { name, icon, type } = req.body;

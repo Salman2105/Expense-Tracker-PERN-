@@ -1,16 +1,7 @@
-const isValidUuid = (value) => {
-    if (typeof value !== "string") {
-        return false;
-    }
+const { validate: isValidUuid } = require("uuid");
+const { TRANSACTION_TYPES, MAX_PAGE_SIZE } = require("../constants");
 
-    const trimmed = value.trim();
-
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        trimmed
-    );
-};
-
-const VALID_TRANSACTION_TYPES = ["INCOME", "EXPENSE"];
+const VALID_TRANSACTION_TYPES = TRANSACTION_TYPES;
 
 /**
  * Validate CREATE transaction request
@@ -248,8 +239,94 @@ const validateTransactionId = (req, res, next) => {
     next();
 };
 
+/**
+ * Validate GET (list) transactions query params
+ */
+const validateGetTransactions = (req, res, next) => {
+    const {
+        page,
+        limit,
+        type,
+        categoryId,
+        startDate,
+        endDate,
+    } = req.query;
+
+    if (page !== undefined) {
+        const pageNumber = Number(page);
+
+        if (!Number.isInteger(pageNumber) || pageNumber < 1) {
+            return res.status(400).json({
+                message: "Page must be a positive integer",
+            });
+        }
+    }
+
+    if (limit !== undefined) {
+        const limitNumber = Number(limit);
+
+        if (
+            !Number.isInteger(limitNumber) ||
+            limitNumber < 1 ||
+            limitNumber > MAX_PAGE_SIZE
+        ) {
+            return res.status(400).json({
+                message: `Limit must be between 1 and ${MAX_PAGE_SIZE}`,
+            });
+        }
+    }
+
+    if (type !== undefined && !VALID_TRANSACTION_TYPES.includes(type)) {
+        return res.status(400).json({
+            message: "Type must be either INCOME or EXPENSE",
+        });
+    }
+
+    if (categoryId !== undefined) {
+        if (typeof categoryId !== "string" || !isValidUuid(categoryId)) {
+            return res.status(400).json({
+                message: "Invalid category ID",
+            });
+        }
+    }
+
+    if (startDate !== undefined) {
+        const parsedStartDate = new Date(startDate);
+
+        if (startDate.trim() === "" || Number.isNaN(parsedStartDate.getTime())) {
+            return res.status(400).json({
+                message: "Invalid start date",
+            });
+        }
+    }
+
+    if (endDate !== undefined) {
+        const parsedEndDate = new Date(endDate);
+
+        if (endDate.trim() === "" || Number.isNaN(parsedEndDate.getTime())) {
+            return res.status(400).json({
+                message: "Invalid end date",
+            });
+        }
+    }
+
+    if (startDate !== undefined && endDate !== undefined) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        if (start > end) {
+            return res.status(400).json({
+                message: "Start date cannot be later than end date",
+            });
+        }
+    }
+
+    next();
+};
+
 module.exports = {
     validateCreateTransaction,
     validateUpdateTransaction,
     validateTransactionId,
+    validateGetTransactions,
 };
