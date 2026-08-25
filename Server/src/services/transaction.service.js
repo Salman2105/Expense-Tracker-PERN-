@@ -1,7 +1,8 @@
-const prisma = require("../../config/prisma");
 const { validate: isValidUuid } = require("uuid");
 const { TRANSACTION_TYPES, MAX_PAGE_SIZE } = require("../constants");
 const AppError = require("../utils/AppError");
+const categoryRepository = require("../repositories/category.repository");
+const transactionRepository = require("../repositories/transaction.repository");
 
 const VALID_TRANSACTION_TYPES = TRANSACTION_TYPES;
 
@@ -21,11 +22,7 @@ const validateUserId = (userId) => {
  * which each need to resolve the category a transaction will end up in.
  */
 const resolveAndAuthorizeCategory = async (categoryId, userId) => {
-  const category = await prisma.category.findUnique({
-    where: {
-      categoryId,
-    },
-  });
+  const category = await categoryRepository.findById(categoryId);
 
   if (!category) {
     throw new AppError("Category not found", 404);
@@ -123,19 +120,17 @@ const createTransaction = async (userId, data = {}) => {
   }
 
   // Create transaction
-  const transaction = await prisma.transaction.create({
-    data: {
-      userId,
-      categoryId,
-      type,
-      amount: parsedAmount,
-      title: title.trim(),
-      note: note?.trim() || null,
+  const transaction = await transactionRepository.create({
+    userId,
+    categoryId,
+    type,
+    amount: parsedAmount,
+    title: title.trim(),
+    note: note?.trim() || null,
 
-      ...(parsedTransactionDate !== undefined && {
-        transactionDate: parsedTransactionDate,
-      }),
-    },
+    ...(parsedTransactionDate !== undefined && {
+      transactionDate: parsedTransactionDate,
+    }),
   });
 
   return transaction;
@@ -206,20 +201,10 @@ const getUserTransactions = async (
     }
 
     // Make sure requested category is accessible
-    const category = await prisma.category.findFirst({
-      where: {
-        categoryId,
-        OR: [
-          {
-            userId,
-          },
-          {
-            isDefault: true,
-            userId: null,
-          },
-        ],
-      },
-    });
+    const category = await categoryRepository.findAccessibleById(
+      categoryId,
+      userId
+    );
 
     if (!category) {
       throw new AppError("Invalid category", 400);
@@ -271,20 +256,13 @@ const getUserTransactions = async (
   }
 
   const [transactions, total] =
-    await prisma.$transaction([
-      prisma.transaction.findMany({
-        where,
-        skip,
-        take: limitNumber,
-        orderBy: {
-          transactionDate: "desc",
-        },
-      }),
-
-      prisma.transaction.count({
-        where,
-      }),
-    ]);
+    await transactionRepository.findManyWithCount(where, {
+      skip,
+      take: limitNumber,
+      orderBy: {
+        transactionDate: "desc",
+      },
+    });
 
   return {
     transactions,
@@ -312,13 +290,10 @@ const getTransactionById = async (
     throw new AppError("Invalid transaction ID", 400);
   }
 
-  const transaction =
-    await prisma.transaction.findFirst({
-      where: {
-        transactionId,
-        userId,
-      },
-    });
+  const transaction = await transactionRepository.findOwnedById(
+    transactionId,
+    userId
+  );
 
   if (!transaction) {
     throw new AppError("Transaction not found", 404);
@@ -343,13 +318,10 @@ const updateTransaction = async (
   }
 
   // Find existing transaction and verify ownership
-  const existingTransaction =
-    await prisma.transaction.findFirst({
-      where: {
-        transactionId,
-        userId,
-      },
-    });
+  const existingTransaction = await transactionRepository.findOwnedById(
+    transactionId,
+    userId
+  );
 
   if (!existingTransaction) {
     throw new AppError("Transaction not found", 404);
@@ -464,12 +436,7 @@ const updateTransaction = async (
   }
 
   // Update transaction
-  return prisma.transaction.update({
-    where: {
-      transactionId,
-    },
-    data: updateData,
-  });
+  return transactionRepository.update(transactionId, updateData);
 };
 
 /**
@@ -487,24 +454,17 @@ const deleteTransaction = async (
   }
 
   // Verify ownership
-  const transaction =
-    await prisma.transaction.findFirst({
-      where: {
-        transactionId,
-        userId,
-      },
-    });
+  const transaction = await transactionRepository.findOwnedById(
+    transactionId,
+    userId
+  );
 
   if (!transaction) {
     throw new AppError("Transaction not found", 404);
   }
 
   // Delete only user's transaction
-  await prisma.transaction.delete({
-    where: {
-      transactionId,
-    },
-  });
+  await transactionRepository.deleteById(transactionId);
 
   return {
     message:

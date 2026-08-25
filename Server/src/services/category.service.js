@@ -2,6 +2,8 @@ const prisma = require("../../config/prisma");
 const { validate: isValidUuid } = require("uuid");
 const { TRANSACTION_TYPES } = require("../constants");
 const AppError = require("../utils/AppError");
+const categoryRepository = require("../repositories/category.repository");
+const transactionRepository = require("../repositories/transaction.repository");
 
 // Category type shares the same INCOME/EXPENSE enum as transaction type.
 const VALID_CATEGORY_TYPES = TRANSACTION_TYPES;
@@ -37,16 +39,10 @@ const createCategory = async ({ userId, name, icon, type }) => {
   const trimmedIcon = icon.trim();
 
   // Check duplicate custom category
-  const existingCategory = await prisma.category.findFirst({
-    where: {
-      userId,
-      name: {
-        equals: trimmedName,
-        mode: "insensitive",
-      },
-      isDefault: false,
-    },
-  });
+  const existingCategory = await categoryRepository.findByNameForUser(
+    userId,
+    trimmedName
+  );
 
   if (existingCategory) {
     throw new AppError(
@@ -55,14 +51,12 @@ const createCategory = async ({ userId, name, icon, type }) => {
     );
   }
 
-  const category = await prisma.category.create({
-    data: {
-      userId,
-      name: trimmedName,
-      icon: trimmedIcon,
-      type,
-      isDefault: false,
-    },
+  const category = await categoryRepository.create({
+    userId,
+    name: trimmedName,
+    icon: trimmedIcon,
+    type,
+    isDefault: false,
   });
 
   return category;
@@ -80,25 +74,7 @@ const getCategories = async (userId) => {
     throw new AppError("Invalid user ID", 400);
   }
 
-  const categories = await prisma.category.findMany({
-    where: {
-      OR: [
-        {
-          isDefault: true,
-          userId: null,
-        },
-        {
-          isDefault: false,
-          userId,
-        },
-      ],
-    },
-    orderBy: {
-      name: "asc",
-    },
-  });
-
-  return categories;
+  return categoryRepository.findAllForUser(userId);
 };
 
 /**
@@ -159,17 +135,10 @@ const updateCategory = async ({
   }
 
   // Find category and verify ownership
-  const category = await prisma.category.findFirst({
-    where: {
-      categoryId,
-      userId,
-      isDefault: false,
-    },
-    select: {
-      categoryId: true,
-      type: true,
-    },
-  });
+  const category = await categoryRepository.findOwnedEditableById(
+    categoryId,
+    userId
+  );
 
   if (!category) {
     throw new AppError(
@@ -186,19 +155,12 @@ const updateCategory = async ({
 
   // Check duplicate name when name is being changed
   if (trimmedName !== undefined) {
-    const existingCategory = await prisma.category.findFirst({
-      where: {
+    const existingCategory =
+      await categoryRepository.findByNameForUserExcluding(
         userId,
-        isDefault: false,
-        categoryId: {
-          not: categoryId,
-        },
-        name: {
-          equals: trimmedName,
-          mode: "insensitive",
-        },
-      },
-    });
+        trimmedName,
+        categoryId
+      );
 
     if (existingCategory) {
       throw new AppError(
@@ -208,23 +170,18 @@ const updateCategory = async ({
     }
   }
 
-  const updatedCategory = await prisma.category.update({
-    where: {
-      categoryId,
-    },
-    data: {
-      ...(trimmedName !== undefined && {
-        name: trimmedName,
-      }),
+  const updatedCategory = await categoryRepository.update(categoryId, {
+    ...(trimmedName !== undefined && {
+      name: trimmedName,
+    }),
 
-      ...(trimmedIcon !== undefined && {
-        icon: trimmedIcon,
-      }),
+    ...(trimmedIcon !== undefined && {
+      icon: trimmedIcon,
+    }),
 
-      ...(type !== undefined && {
-        type,
-      }),
-    },
+    ...(type !== undefined && {
+      type,
+    }),
   });
 
   return updatedCategory;
@@ -245,13 +202,10 @@ const deleteCategory = async ({ categoryId, userId }) => {
   }
 
   // Verify ownership and prevent deleting default categories
-  const category = await prisma.category.findFirst({
-    where: {
-      categoryId,
-      userId,
-      isDefault: false,
-    },
-  });
+  const category = await categoryRepository.findOwnedDeletableById(
+    categoryId,
+    userId
+  );
 
   if (!category) {
     throw new AppError(
@@ -262,40 +216,24 @@ const deleteCategory = async ({ categoryId, userId }) => {
 
   // Reassign transactions and delete category atomically
   await prisma.$transaction(async (tx) => {
-    let uncategorizedCategory = await tx.category.findFirst({
-      where: {
-        name: "Uncategorized",
-        isDefault: true,
-        userId: null,
-      },
-    });
+    let uncategorizedCategory =
+      await categoryRepository.findDefaultUncategorized(tx);
 
     if (!uncategorizedCategory) {
-      uncategorizedCategory = await tx.category.create({
-        data: {
-          name: "Uncategorized",
-          icon: "Uncategorized",
-          type: category.type,
-          isDefault: true,
-          userId: null,
-        },
-      });
+      uncategorizedCategory =
+        await categoryRepository.createDefaultUncategorized(
+          category.type,
+          tx
+        );
     }
 
-    await tx.transaction.updateMany({
-      where: {
-        categoryId,
-      },
-      data: {
-        categoryId: uncategorizedCategory.categoryId,
-      },
-    });
+    await transactionRepository.updateManyCategoryId(
+      categoryId,
+      uncategorizedCategory.categoryId,
+      tx
+    );
 
-    await tx.category.delete({
-      where: {
-        categoryId,
-      },
-    });
+    await categoryRepository.deleteById(categoryId, tx);
   });
 
   return {

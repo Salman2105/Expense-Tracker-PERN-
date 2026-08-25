@@ -1,6 +1,6 @@
-const prisma = require("../../config/prisma");
 const { validate: isValidUuid } = require("uuid");
 const AppError = require("../utils/AppError");
+const transactionRepository = require("../repositories/transaction.repository");
 
 const getDashboard = async (userId) => {
   // Validate authenticated user ID
@@ -32,60 +32,14 @@ const getDashboard = async (userId) => {
     categorySpending,
     transactionStats,
   ] = await Promise.all([
-    prisma.transaction.aggregate({
-      where: {
-        userId,
-        type: "INCOME",
-      },
-      _sum: {
-        amount: true,
-      },
+    transactionRepository.sumAmountByType(userId, "INCOME"),
+    transactionRepository.sumAmountByType(userId, "EXPENSE"),
+    transactionRepository.sumAmountByTypeInRange(userId, "EXPENSE", {
+      gte: startOfMonth,
+      lt: startOfNextMonth,
     }),
-
-    prisma.transaction.aggregate({
-      where: {
-        userId,
-        type: "EXPENSE",
-      },
-      _sum: {
-        amount: true,
-      },
-    }),
-
-    prisma.transaction.aggregate({
-      where: {
-        userId,
-        type: "EXPENSE",
-        transactionDate: {
-          gte: startOfMonth,
-          lt: startOfNextMonth,
-        },
-      },
-      _sum: {
-        amount: true,
-      },
-    }),
-
-    prisma.transaction.groupBy({
-      by: ["categoryId"],
-      where: {
-        userId,
-        type: "EXPENSE",
-      },
-      _sum: {
-        amount: true,
-      },
-    }),
-
-    prisma.transaction.groupBy({
-      by: ["type"],
-      where: {
-        userId,
-      },
-      _count: {
-        transactionId: true,
-      },
-    }),
+    transactionRepository.sumAmountGroupedByCategory(userId, "EXPENSE"),
+    transactionRepository.countGroupedByType(userId),
   ]);
 
   const income = Number(totalIncome._sum.amount || 0);

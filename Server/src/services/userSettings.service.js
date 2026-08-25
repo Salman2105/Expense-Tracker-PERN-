@@ -1,6 +1,6 @@
-const prisma = require("../../config/prisma");
 const { validate: isValidUuid } = require("uuid");
 const AppError = require("../utils/AppError");
+const userSettingsRepository = require("../repositories/userSettings.repository");
 
 /**
  * Validate authenticated user ID.
@@ -17,11 +17,7 @@ const validateUserId = (userId) => {
 const getUserSettings = async (userId) => {
   validateUserId(userId);
 
-  return prisma.userSettings.findUnique({
-    where: {
-      userId,
-    },
-  });
+  return userSettingsRepository.findByUserId(userId);
 };
 
 /**
@@ -34,35 +30,33 @@ const createUserSettings = async (
   validateUserId(userId);
 
   try {
-    return await prisma.userSettings.create({
-      data: {
-        userId,
+    return await userSettingsRepository.create({
+      userId,
 
-        theme:
-          data.theme !== undefined
-            ? data.theme
-            : "SYSTEM",
+      theme:
+        data.theme !== undefined
+          ? data.theme
+          : "SYSTEM",
 
-        preferredCurrency:
-          data.preferredCurrency !== undefined
-            ? data.preferredCurrency
-            : "PKR",
+      preferredCurrency:
+        data.preferredCurrency !== undefined
+          ? data.preferredCurrency
+          : "PKR",
 
-        language:
-          data.language !== undefined
-            ? data.language
-            : "en",
+      language:
+        data.language !== undefined
+          ? data.language
+          : "en",
 
-        ...(data.emailNotifications !== undefined && {
-          emailNotifications:
-            data.emailNotifications,
-        }),
+      ...(data.emailNotifications !== undefined && {
+        emailNotifications:
+          data.emailNotifications,
+      }),
 
-        ...(data.budgetAlerts !== undefined && {
-          budgetAlerts:
-            data.budgetAlerts,
-        }),
-      },
+      ...(data.budgetAlerts !== undefined && {
+        budgetAlerts:
+          data.budgetAlerts,
+      }),
     });
   } catch (error) {
     if (error?.code === "P2002") {
@@ -112,12 +106,7 @@ const updateUserSettings = async (
   }
 
   try {
-    return await prisma.userSettings.update({
-      where: {
-        userId,
-      },
-      data: updateData,
-    });
+    return await userSettingsRepository.update(userId, updateData);
   } catch (error) {
     if (error?.code === "P2025") {
       throw new AppError(

@@ -1,4 +1,4 @@
-const prisma = require("../../config/prisma");
+const userRepository = require("../repositories/user.repository");
 
 /**
  * GET /
@@ -14,7 +14,7 @@ const getStatus = (req, res) => {
  */
 const getDbCheck = async (req, res) => {
   try {
-    const usersCount = await prisma.user.count();
+    const usersCount = await userRepository.count();
 
     res.json({
       ok: true,
