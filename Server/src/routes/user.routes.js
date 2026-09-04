@@ -4,9 +4,11 @@ const {
   getMyProfile,
   updateMyProfile,
   changePassword,
+  uploadMyProfilePicture,
 } = require("../controllers/user.controller");
 
 const authMiddleware = require("../middleware/auth.middleware");
+const uploadProfilePicture = require("../middleware/profilePictureUpload.middleware");
 
 const {
   validateUpdateProfile,
@@ -94,6 +96,13 @@ router.patch(
   authMiddleware,
   validateUpdateProfile,
   updateMyProfile
+);
+
+router.post(
+  "/me/profile-picture",
+  authMiddleware,
+  uploadProfilePicture,
+  uploadMyProfilePicture
 );
 
 /**

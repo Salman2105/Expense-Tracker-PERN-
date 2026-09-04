@@ -38,34 +38,52 @@ describe("User profile endpoints", () => {
     expect(res.body.data.passwordHash).toBeUndefined();
   });
 
-  it("updates the profile picture", async () => {
+  it("rejects direct non-Cloudinary profile picture URLs", async () => {
     const res = await request(app)
       .patch("/api/users/me")
       .set(authHeader(token))
       .send({ profilePicture: "https://example.com/pic.png" });
 
-    expect(res.status).toBe(200);
-    expect(res.body.data.profilePicture).toBe("https://example.com/pic.png");
+    expect(res.status).toBe(400);
   });
 
-  // KNOWN BUG (pre-existing, documented in REPORT.md, not fixed by this
-  // refactor): userService.updateUserProfile never reads `data.username`,
-  // so a username-only PATCH body updates nothing and falls through to an
-  // "EMPTY_UPDATE" error.
-  //
-  // The status code below (400) reflects one deliberate fix made during
-  // this refactor: EMPTY_UPDATE previously had no statusCode attached, so
-  // it fell through every controller's error handling to a generic 500.
-  // It now carries statusCode 400, since "you sent nothing to update" is a
-  // client input error, not a server fault. See REPORT.md.
-  it("silently ignores username updates (documented bug, not a spec)", async () => {
+  it("updates the username", async () => {
     const res = await request(app)
       .patch("/api/users/me")
       .set(authHeader(token))
       .send({ username: "somethingelse" });
 
-    expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe("EMPTY_UPDATE");
+    expect(res.status).toBe(200);
+    expect(res.body.data.username).toBe("somethingelse");
+  });
+
+  describe("POST /api/users/me/profile-picture", () => {
+    it("rejects unauthenticated uploads", async () => {
+      const res = await request(app)
+        .post("/api/users/me/profile-picture")
+        .attach("image", Buffer.from("not-an-image"), "avatar.png");
+
+      expect(res.status).toBe(401);
+    });
+
+    it("rejects uploads without an image", async () => {
+      const res = await request(app)
+        .post("/api/users/me/profile-picture")
+        .set(authHeader(token));
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe("IMAGE_REQUIRED");
+    });
+
+    it("rejects unsupported image MIME types", async () => {
+      const res = await request(app)
+        .post("/api/users/me/profile-picture")
+        .set(authHeader(token))
+        .attach("image", Buffer.from("plain text"), "avatar.txt");
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe("INVALID_IMAGE_TYPE");
+    });
   });
 
   describe("PATCH /api/users/me/password", () => {

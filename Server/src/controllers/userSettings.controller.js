@@ -36,8 +36,8 @@ const getMySettings = async (req, res, next) => {
                     theme: "SYSTEM",
                     preferredCurrency: "PKR",
                     language: "en",
-                    emailNotifications: true,
-                    budgetAlerts: true,
+                    emailNotifications: false,
+                    budgetAlerts: false,
                 }
             );
         }

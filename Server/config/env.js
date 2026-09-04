@@ -22,7 +22,7 @@ const env = {
 
   port: Number(process.env.PORT) || 3000,
 
-  clientUrl: process.env.CLIENT_URL || "http://localhost:3000",
+  clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
 
   databaseUrl: process.env.DATABASE_URL,
 
@@ -30,6 +30,12 @@ const env = {
 
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   logLevel: process.env.LOG_LEVEL || "info",
+
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+  },
 };
 
 module.exports = env;

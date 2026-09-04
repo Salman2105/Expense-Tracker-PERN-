@@ -1,0 +1,736 @@
+# PHASE 15 — FINAL FRONTEND CLEANUP & PRODUCTION READINESS
+
+You are working on my existing **Expense Tracker PERN frontend**.
+
+Tech stack:
+
+* React 19
+* TypeScript
+* Vite
+* React Router
+* Axios
+* TanStack React Query
+* Tailwind CSS
+* Backend: Express + PostgreSQL + Prisma
+* Authentication: JWT
+* Frontend architecture is feature-based
+
+## IMPORTANT RULES
+
+1. **Inspect the entire existing frontend before making changes.**
+2. Do NOT rebuild the frontend from scratch.
+3. Do NOT introduce new features.
+4. Do NOT change working backend APIs or API contracts.
+5. Preserve the existing UI/design/theme.
+6. Preserve the existing authentication/session architecture.
+7. Preserve the existing React Query architecture.
+8. Reuse existing utilities/types/components instead of creating duplicates.
+9. Do not use `any` to hide TypeScript problems.
+10. Do not remove code/dependencies/types unless you verify they are unused.
+11. Keep `src/api/client.ts` as the canonical Axios/API client.
+12. Do not create another API client.
+13. Keep the existing feature-based architecture.
+14. Make production-safe changes only.
+15. After each major cleanup, verify that imports and references remain valid.
+16. Do not make unnecessary refactors just for stylistic preference.
+
+---
+
+# 15.1 REMOVE DEAD CODE
+
+Audit the complete frontend source code.
+
+Find and remove:
+
+* Unused components
+* Unused pages
+* Old placeholder implementations
+* Commented-out obsolete code
+* Unused functions
+* Unused variables
+* Unused imports
+* Debugging code
+* Unused hooks
+* Old authentication/session logic
+* Old API implementations
+* Temporary development code
+* Duplicate implementations that were replaced by newer implementations
+
+Search the entire project before deleting anything.
+
+Do not delete code merely because it looks unused. Confirm that it has no active references.
+
+---
+
+# 15.2 REMOVE UNUSED DEPENDENCIES
+
+Inspect:
+
+* `package.json`
+* `package-lock.json`
+
+Determine which dependencies are actually used.
+
+Search the source code before removing any dependency.
+
+Remove only genuinely unused dependencies.
+
+Pay particular attention to packages that may have remained from previous implementation stages.
+
+After cleanup:
+
+```bash
+npm install
+```
+
+or the appropriate package-manager command for the existing project.
+
+Make sure the lockfile remains consistent.
+
+---
+
+# 15.3 REMOVE UNUSED / DUPLICATE TYPES
+
+Audit:
+
+```text
+src/types/
+src/features/**/types/
+src/features/**/contracts/
+```
+
+Find:
+
+* Unused interfaces
+* Duplicate interfaces
+* Duplicate API response types
+* Old request/response types
+* Unused enums
+* Redundant aliases
+* Types that duplicate existing domain models
+
+Maintain a clear distinction:
+
+```text
+models/
+    Domain/entity representations
+
+contracts/
+    API request/response contracts
+
+feature types/
+    UI/feature-specific types
+```
+
+If an existing type already represents something correctly, reuse it instead of creating another equivalent type.
+
+Do not change API contracts unnecessarily.
+
+---
+
+# 15.4 REMOVE DUPLICATE UTILITIES
+
+Search the entire project for duplicate functionality.
+
+Check specifically for duplicates involving:
+
+* API clients
+* Axios configuration
+* Token handling
+* Authentication helpers
+* Error handling
+* Response handling
+* Date formatting
+* Currency formatting
+* Validation
+* Pagination
+* Local storage/session storage
+* Navigation helpers
+* Constants
+
+The canonical API client must remain:
+
+```text
+src/api/client.ts
+```
+
+It should be the central HTTP client.
+
+Do not reintroduce or keep a second Axios client such as the previously duplicated:
+
+```text
+src/lib/api/apiClient.ts
+```
+
+if it is no longer used.
+
+Verify all services use the canonical client.
+
+---
+
+# 15.5 COMPONENT ORGANIZATION REVIEW
+
+Review the entire component architecture.
+
+Maintain the existing feature-based structure.
+
+Aim for a clean organization similar to:
+
+```text
+src/
+├── api/
+├── app/
+├── components/
+│   ├── common/
+│   ├── layout/
+│   └── ui/
+├── features/
+│   ├── auth/
+│   ├── dashboard/
+│   ├── transactions/
+│   ├── categories/
+│   ├── profile/
+│   ├── settings/
+│   └── account/
+├── hooks/
+├── lib/
+├── routes/
+├── types/
+└── styles/
+```
+
+Do not force this exact structure if the existing structure already follows the same architectural principles.
+
+Check that:
+
+* Feature-specific components stay inside their feature.
+* Shared components are actually reusable.
+* Components are not duplicated.
+* Components are not unnecessarily large.
+* Business/API logic is not unnecessarily embedded in UI components.
+* Shared UI components remain generic.
+* Feature-specific logic stays feature-specific.
+
+Do not split components into tiny components without a real maintainability benefit.
+
+---
+
+# 15.6 API / SERVICE ARCHITECTURE REVIEW
+
+Verify the frontend follows this flow:
+
+```text
+Page / Component
+        ↓
+React Query hook
+        ↓
+Feature service
+        ↓
+src/api/client.ts
+        ↓
+Backend API
+```
+
+Examples:
+
+```text
+DashboardPage
+    ↓
+useDashboardQuery()
+    ↓
+dashboard.service.ts
+    ↓
+client.ts
+```
+
+Verify that React components do NOT directly call Axios.
+
+Review services for:
+
+* Correct endpoint usage
+* Correct HTTP methods
+* Correct request types
+* Correct response types
+* Consistent error handling
+* No duplicated API logic
+* No hardcoded API base URLs
+* No authentication logic duplicated inside individual services
+
+Review all major services:
+
+```text
+auth.service.ts
+user.service.ts
+settings.service.ts
+category.service.ts
+transaction.service.ts
+dashboard.service.ts
+```
+
+Use the actual filenames already present in the project if they differ.
+
+Do not change working backend contracts.
+
+---
+
+# 15.7 ROUTING REVIEW
+
+Audit the complete React Router configuration.
+
+Verify public routes such as:
+
+```text
+/
+/login
+/register
+```
+
+and protected routes such as:
+
+```text
+/dashboard
+/transactions
+/categories
+/profile
+/settings
+/account
+```
+
+Use the actual routes present in the application.
+
+Verify:
+
+* ProtectedRoute works correctly.
+* Public-route guard works correctly.
+* Authenticated users are redirected away from login/register where intended.
+* Unauthenticated users cannot access protected pages.
+* Auth initialization state is handled correctly.
+* Redirects use `replace` where appropriate.
+* Logout redirects correctly.
+* Account deletion redirects correctly.
+* Unknown routes display the 404 page.
+* No duplicate route protection logic exists inside individual pages.
+
+Preserve the existing AuthProvider architecture.
+
+---
+
+# 15.8 ENVIRONMENT CONFIGURATION REVIEW
+
+Audit environment configuration.
+
+Check:
+
+```text
+.env
+.env.example
+.gitignore
+```
+
+The frontend should use the established API variable:
+
+```text
+VITE_API_BASE_URL
+```
+
+Verify:
+
+* No hardcoded production API URL exists in source code.
+* No database credentials exist in frontend files.
+* No JWT secret exists in frontend files.
+* No backend secrets exist in `VITE_*` variables.
+* Environment variables are accessed consistently.
+* `.env` is not accidentally committed.
+* `.env.example` documents required non-secret variables.
+
+Remember:
+
+**Anything exposed through Vite `VITE_*` variables is available to the browser.**
+
+Therefore never place secrets in them.
+
+---
+
+# 15.9 TYPESCRIPT STRICTNESS REVIEW
+
+Inspect:
+
+```text
+tsconfig.json
+```
+
+Keep strict TypeScript enabled where already configured.
+
+Run:
+
+```bash
+npx tsc --noEmit
+```
+
+Fix all TypeScript errors.
+
+Look for:
+
+* `any`
+* Unsafe type assertions
+* `as unknown as`
+* Incorrect nullable handling
+* Incorrect optional properties
+* Incorrect API response assumptions
+* Missing type safety
+* Unreachable code
+* Incorrect function signatures
+
+Do NOT solve errors by adding `any`.
+
+Use the existing domain/API types properly.
+
+Final target:
+
+```text
+0 TypeScript errors
+```
+
+---
+
+# 15.10 ESLINT REVIEW
+
+Run the existing lint command, preferably:
+
+```bash
+npm run lint
+```
+
+Fix all legitimate lint issues.
+
+Check for:
+
+* Unused imports
+* Unused variables
+* React hook dependency issues
+* Incorrect hook usage
+* Unreachable code
+* Unsafe patterns
+* Unnecessary eslint disables
+* Stale eslint suppressions
+
+Search for:
+
+```text
+eslint-disable
+eslint-disable-next-line
+```
+
+Review every suppression.
+
+Do not disable ESLint rules merely to make the command pass.
+
+Final target:
+
+```text
+0 lint errors
+```
+
+Warnings should also be reviewed and cleaned where practical.
+
+---
+
+# 15.11 PRODUCTION BUILD
+
+After all cleanup, run:
+
+```bash
+npm run build
+```
+
+The production build must succeed.
+
+Then run:
+
+```bash
+npm run preview
+```
+
+Test the production build.
+
+Verify the following flows:
+
+## Authentication
+
+* Register
+* Login
+* Logout
+* Auth initialization
+* Session expiration
+* 401 handling
+
+## Protected routing
+
+* Unauthenticated access to protected routes
+* Authenticated access to protected routes
+* Public route behavior
+* 404 route
+
+## Dashboard
+
+* Loading skeleton
+* Successful data
+* Empty states
+* API errors
+
+## Transactions
+
+* List
+* Create
+* Update
+* Delete
+* Loading
+* Error
+* Empty state
+
+## Categories
+
+* List
+* Create
+* Update
+* Delete
+* Loading
+* Error
+* Empty state
+
+## Profile
+
+* Load profile
+* Update profile
+* Loading
+* Error
+* Success feedback
+
+## Settings
+
+* Load settings
+* Update settings
+* Loading
+* Error
+* Success feedback
+
+## Account
+
+* Account information/status
+* Delete account
+* Confirmation dialog
+* Successful deletion
+* Session cleanup
+* Redirect to login
+
+## Global UX
+
+* Skeleton loading states
+* Toast/notifications
+* API errors
+* 401
+* 403
+* 404
+* Network errors
+* Form submission feedback
+* Empty states
+
+## Responsive/accessibility
+
+Check:
+
+* Desktop
+* Tablet
+* Mobile
+* Keyboard navigation
+* Form labels
+* Buttons
+* Focus states
+* Semantic elements
+* Basic accessibility issues
+
+Do not redesign the UI.
+
+---
+
+# 15.12 FINAL FRONTEND ARCHITECTURE REVIEW
+
+Perform a final architectural audit.
+
+The architecture should conceptually remain:
+
+```text
+                    React Application
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+           Routing                  AuthProvider
+              │                         │
+              └────────────┬────────────┘
+                           │
+                     Feature Pages
+                           │
+                     React Query
+                           │
+                    Feature Services
+                           │
+                     API Client
+                           │
+                         Axios
+                           │
+                      Backend API
+```
+
+Confirm:
+
+### Authentication
+
+* AuthProvider owns auth state.
+* Token/session handling is centralized.
+* Axios attaches the token centrally.
+* 401 handling is coordinated with the auth/session layer.
+* Logout cleans up frontend session state.
+
+### Server state
+
+* React Query handles server state.
+* Queries are centralized through feature hooks/services.
+* Mutations invalidate appropriate queries.
+* No unnecessary manual server-state management exists.
+
+### API
+
+* One canonical Axios client.
+* Feature services encapsulate API calls.
+* Components do not directly call Axios.
+
+### Routing
+
+* Public/protected routes are correctly separated.
+* Auth initialization is handled.
+* Redirect behavior is consistent.
+
+### Components
+
+* Feature components remain feature-specific.
+* Shared components are genuinely reusable.
+* No unnecessary duplication.
+
+### Types
+
+* Domain models are reused.
+* API contracts are explicit.
+* No unnecessary duplicate types.
+* No `any` used to hide errors.
+
+### Configuration
+
+* Environment variables are correct.
+* No secrets are exposed.
+* API base URL configuration is centralized.
+
+### Code quality
+
+* TypeScript passes.
+* ESLint passes.
+* Production build passes.
+* No obvious dead code remains.
+* No unnecessary dependencies remain.
+
+---
+
+# FINAL VALIDATION COMMANDS
+
+Run the appropriate existing commands, including:
+
+```bash
+npm run lint
+npx tsc --noEmit
+npm run build
+npm run preview
+```
+
+If the project has additional existing test commands, run those as well.
+
+Do not modify scripts merely to make checks pass.
+
+---
+
+# IMPORTANT FINAL REPORT
+
+When finished, provide a concise report containing:
+
+### 1. Files changed
+
+List the important files changed.
+
+### 2. Dead code removed
+
+Summarize what was removed.
+
+### 3. Dependencies removed
+
+List any removed dependencies and why.
+
+### 4. Type cleanup
+
+Summarize duplicate/unused types removed.
+
+### 5. Utility cleanup
+
+Summarize duplicate utilities/API clients removed.
+
+### 6. Architecture improvements
+
+Summarize meaningful architectural cleanup.
+
+### 7. TypeScript
+
+Report:
+
+```text
+TypeScript: PASS/FAIL
+Errors: X
+```
+
+### 8. ESLint
+
+Report:
+
+```text
+ESLint: PASS/FAIL
+Errors: X
+Warnings: X
+```
+
+### 9. Production build
+
+Report:
+
+```text
+Production build: PASS/FAIL
+```
+
+### 10. Remaining issues
+
+List anything that could not safely be fixed.
+
+Do not hide failures.
+
+## MOST IMPORTANT
+
+This is a **cleanup and production-readiness phase**, not a feature-development phase.
+
+Prefer:
+
+```text
+inspect → verify → clean → test → build → report
+```
+
+Do not:
+
+```text
+rewrite → redesign → introduce new architecture
+```
+
+Preserve the existing working functionality and architecture while making the codebase cleaner, safer, more maintainable, and production-ready.

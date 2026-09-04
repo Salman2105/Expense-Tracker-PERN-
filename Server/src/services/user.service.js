@@ -10,14 +10,18 @@ const getUserProfile = async (userId) => {
 const updateUserProfile = async (userId, data) => {
   const updateData = {};
 
+  if (data.username !== undefined) {
+    updateData.username = data.username;
+  }
+
   /**
    * Profile picture
    *
    * Validation middleware should already validate this,
    * but the service still avoids storing undefined values.
    */
-  if (data.profilePicture) {
-    updateData.profilePicture = data.profilePicture || null;
+  if (data.profilePicture !== undefined) {
+    updateData.profilePicture = data.profilePicture;
   }
 
   /**

@@ -1,0 +1,11 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { CreateCategoryRequest, UpdateCategoryRequest } from "../../../domain/contracts/category.contracts";
+import { queryKeys } from "../../../lib/query-keys";
+import { categoryService } from "../../../services/category.service";
+export const useCategories = () => useQuery({ queryKey: queryKeys.categories, queryFn: () => categoryService.getCategories(), staleTime: 300_000 });
+export const useGlobalCategories = () => { const query = useCategories(); return { ...query, data: query.data?.data.filter((category) => category.isDefault) ?? [] }; };
+export const useUserCategories = () => { const query = useCategories(); return { ...query, data: query.data?.data.filter((category) => !category.isDefault) ?? [] }; };
+const useCategoryInvalidation = () => { const client = useQueryClient(); return () => Promise.all([client.invalidateQueries({ queryKey: queryKeys.categories }), client.invalidateQueries({ queryKey: queryKeys.dashboard }), client.invalidateQueries({ queryKey: ["transactions"] })]); };
+export const useCreateCategory = () => { const invalidate = useCategoryInvalidation(); return useMutation({ mutationFn: (payload: CreateCategoryRequest) => categoryService.createCategory(payload), onSuccess: invalidate }); };
+export const useUpdateCategory = () => { const invalidate = useCategoryInvalidation(); return useMutation({ mutationFn: ({ id, payload }: { id: string; payload: UpdateCategoryRequest }) => categoryService.updateCategory(id, payload), onSuccess: invalidate }); };
+export const useDeleteCategory = () => { const invalidate = useCategoryInvalidation(); return useMutation({ mutationFn: (id: string) => categoryService.deleteCategory(id), onSuccess: invalidate }); };

@@ -120,6 +120,13 @@ const validateUpdateProfile = (req, res, next) => {
         });
       }
 
+      if (!/^https:\/\/res\.cloudinary\.com\//i.test(trimmedProfilePicture)) {
+        return res.status(400).json({
+          success: false,
+          message: "Profile picture must be a Cloudinary image URL",
+        });
+      }
+
       req.body.profilePicture =
         trimmedProfilePicture;
     }

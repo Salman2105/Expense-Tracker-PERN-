@@ -9,11 +9,12 @@ const authMiddleware = async (req, res, next) => {
     // 1. Get token from Authorization header
     const authHeader = req.headers.authorization;
 
-    if (typeof authHeader !== "string") {
+    if (!authHeader && typeof authHeader !== "string") {
       return errorResponse(res, 401, "Authentication token is required");
     }
 
     // 2. Extract token
+    console.log("bearerMatch", authHeader);
     const bearerMatch = authHeader.match(/^Bearer\s+(\S+)$/i);
 
     if (!bearerMatch) {

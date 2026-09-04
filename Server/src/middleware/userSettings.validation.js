@@ -7,6 +7,8 @@ const allowedFields = [
 ];
 
 const validThemes = ["LIGHT", "DARK", "SYSTEM"];
+const validCurrencies = ["USD", "EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "CNY", "INR", "PKR"];
+const validLanguages = ["en"];
 
 const validateUserSettings = (req, res, next) => {
   const settings = req.body;
@@ -93,12 +95,11 @@ const validateUserSettings = (req, res, next) => {
       });
     }
 
-    // ISO-style 3-letter currency code
-    if (!/^[A-Z]{3}$/.test(currency)) {
+    if (!validCurrencies.includes(currency)) {
       return res.status(400).json({
         success: false,
         message:
-          "Preferred currency must be a valid 3-letter currency code",
+          "Unsupported preferred currency. Allowed values: USD, EUR, GBP, JPY, AUD, CAD, CHF, CNY, INR, PKR",
       });
     }
 
@@ -125,23 +126,14 @@ const validateUserSettings = (req, res, next) => {
       });
     }
 
-    if (language.length > 10) {
+    if (!validLanguages.includes(language.toLowerCase())) {
       return res.status(400).json({
         success: false,
-        message:
-          "Language must not exceed 10 characters",
+        message: "Unsupported language. Allowed values: en",
       });
     }
 
-    // Example accepted values: en, ur, en-US, ur-PK
-    if (!/^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$/.test(language)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid language format",
-      });
-    }
-
-    settings.language = language;
+    settings.language = language.toLowerCase();
   }
 
   /**

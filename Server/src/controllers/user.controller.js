@@ -1,4 +1,5 @@
 const userService = require("../services/user.service");
+const { deleteProfilePicture, uploadProfilePicture } = require("../services/cloudinary.service");
 
 const {
     successResponse,
@@ -84,8 +85,44 @@ const changePassword = async (req, res, next) => {
     }
 };
 
+const uploadMyProfilePicture = async (req, res, next) => {
+    try {
+        if (!req.file) {
+            return errorResponse(
+                res,
+                400,
+                "An image file is required",
+                "IMAGE_REQUIRED"
+            );
+        }
+
+        const previousUser = await userService.getUserProfile(req.user.id);
+        const secureUrl = await uploadProfilePicture(
+            req.file.buffer,
+            req.user.id
+        );
+        const updatedUser = await userService.updateUserProfile(req.user.id, {
+            profilePicture: secureUrl,
+        });
+
+        if (previousUser?.profilePicture && previousUser.profilePicture !== secureUrl) {
+            await deleteProfilePicture(previousUser.profilePicture).catch(() => undefined);
+        }
+
+        return successResponse(
+            res,
+            200,
+            "Profile picture uploaded successfully",
+            updatedUser
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getMyProfile,
     updateMyProfile,
+    uploadMyProfilePicture,
     changePassword,
 };

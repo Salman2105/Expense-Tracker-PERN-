@@ -60,6 +60,21 @@ describe("User settings endpoints", () => {
     expect(res.status).toBe(400);
   });
 
+  it("rejects unsupported currency and language values", async () => {
+    const currencyRes = await request(app)
+      .patch("/api/users/me/settings")
+      .set(authHeader(token))
+      .send({ preferredCurrency: "ABC" });
+
+    const languageRes = await request(app)
+      .patch("/api/users/me/settings")
+      .set(authHeader(token))
+      .send({ language: "fr" });
+
+    expect(currencyRes.status).toBe(400);
+    expect(languageRes.status).toBe(400);
+  });
+
   it("rejects creating settings that already exist", async () => {
     await request(app)
       .post("/api/users/me/settings")

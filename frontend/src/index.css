@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+:root {
+  /* Brand */
+  --primary: #25AE84;
+  --primary-hover: #1F9873;
+  --primary-light: #E5F7F1;
+
+  /* Navigation */
+  --sidebar: #172131;
+  --sidebar-hover: #232E3F;
+  --sidebar-text: #AEB6BE;
+  --sidebar-active-text: #FFFFFF;
+
+  /* Surfaces */
+  --background: #FAFAF8;
+  --surface: #FFFFFF;
+  --surface-secondary: #F4F5F3;
+  --border: #E8EAE7;
+
+  /* Typography */
+  --text-primary: #101417;
+  --text-secondary: #858B8A;
+  --text-muted: #B0B5B3;
+
+  /* Finance */
+  --income: #25AE84;
+  --expense: #E85D68;
+  --warning: #F5C83B;
+
+  /* Charts */
+  --chart-blue: #2A83D8;
+  --chart-green: #25AE84;
+  --chart-yellow: #F5C83B;
+  --chart-purple: #765BD6;
+  --chart-orange: #F49A4A;
+
+  /* Base */
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+
+  color: var(--text-primary);
+  background: var(--background);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --primary: #35c99b;
+  --primary-hover: #25ae84;
+  --primary-light: #173f35;
+
+  --sidebar: #101923;
+  --sidebar-hover: #1d2a38;
+  --sidebar-text: #b7c1c8;
+  --sidebar-active-text: #ffffff;
+
+  --background: #121a1d;
+  --surface: #1b262a;
+  --surface-secondary: #243236;
+  --border: #344448;
+
+  --text-primary: #f0f5f3;
+  --text-secondary: #b8c4c1;
+  --text-muted: #84918e;
+
+  --income: #43d3a4;
+  --expense: #f4767f;
+  --warning: #ffd45d;
+
+  --chart-blue: #5ba8ee;
+  --chart-green: #43d3a4;
+  --chart-yellow: #ffd45d;
+  --chart-purple: #a792f0;
+  --chart-orange: #f8ae65;
+}
+
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  overflow-x: hidden;
+}
+
+@keyframes landing-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

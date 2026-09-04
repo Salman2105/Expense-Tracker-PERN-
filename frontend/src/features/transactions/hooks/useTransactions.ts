@@ -1,0 +1,10 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { CreateTransactionRequest, TransactionListQuery, UpdateTransactionRequest } from "../../../domain/contracts/transaction.contracts";
+import { queryKeys } from "../../../lib/query-keys";
+import { transactionService } from "../../../services/transaction.service";
+const invalidateFinancialData = (client: ReturnType<typeof useQueryClient>) => Promise.all([client.invalidateQueries({ queryKey: ["transactions"] }), client.invalidateQueries({ queryKey: queryKeys.dashboard })]);
+export const useTransactions = (query: TransactionListQuery) => useQuery({ queryKey: queryKeys.transactions(query), queryFn: () => transactionService.getTransactions(query), placeholderData: (previous) => previous });
+export const useTransaction = (id: string) => useQuery({ queryKey: queryKeys.transaction(id), queryFn: () => transactionService.getTransactionById(id), enabled: Boolean(id) });
+export const useCreateTransaction = () => { const client = useQueryClient(); return useMutation({ mutationFn: (payload: CreateTransactionRequest) => transactionService.createTransaction(payload), onSuccess: () => invalidateFinancialData(client) }); };
+export const useUpdateTransaction = () => { const client = useQueryClient(); return useMutation({ mutationFn: ({ id, payload }: { id: string; payload: UpdateTransactionRequest }) => transactionService.updateTransaction(id, payload), onSuccess: (_, { id }) => Promise.all([invalidateFinancialData(client), client.invalidateQueries({ queryKey: queryKeys.transaction(id) })]) }); };
+export const useDeleteTransaction = () => { const client = useQueryClient(); return useMutation({ mutationFn: (id: string) => transactionService.deleteTransaction(id), onSuccess: () => invalidateFinancialData(client) }); };
