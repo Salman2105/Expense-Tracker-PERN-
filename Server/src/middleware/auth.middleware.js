@@ -14,7 +14,6 @@ const authMiddleware = async (req, res, next) => {
     }
 
     // 2. Extract token
-    console.log("bearerMatch", authHeader);
     const bearerMatch = authHeader.match(/^Bearer\s+(\S+)$/i);
 
     if (!bearerMatch) {

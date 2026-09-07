@@ -9,6 +9,13 @@ const getStatus = (req, res) => {
   });
 };
 
+const getHealth = (req, res) => {
+  res.json({
+    success: true,
+    message: "API is healthy",
+  });
+};
+
 /**
  * GET /db-check
  */
@@ -20,15 +27,16 @@ const getDbCheck = async (req, res) => {
       ok: true,
       usersCount,
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({
       ok: false,
-      error: error.message,
+      error: "Database check failed",
     });
   }
 };
 
 module.exports = {
   getStatus,
+  getHealth,
   getDbCheck,
 };

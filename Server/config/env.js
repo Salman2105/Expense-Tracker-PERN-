@@ -17,12 +17,19 @@ if (process.env.JWT_SECRET.length < 32) {
   throw new Error("JWT_SECRET must be at least 32 characters long");
 }
 
+// Browsers send the Origin header without a trailing slash. A CLIENT_URL
+// pasted with one (e.g. "https://app.onrender.com/") would never match and
+// every CORS preflight would fail, so normalize it here.
+const normalizeOrigin = (url) => url.replace(/\/+$/, "");
+
 const env = {
   nodeEnv: process.env.NODE_ENV || "development",
 
   port: Number(process.env.PORT) || 3000,
 
-  clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
+  clientUrl: normalizeOrigin(
+    process.env.CLIENT_URL || "http://localhost:5173"
+  ),
 
   databaseUrl: process.env.DATABASE_URL,
 

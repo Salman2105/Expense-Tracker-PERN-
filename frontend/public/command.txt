@@ -1,615 +1,262 @@
-TASK: Replace Profile Picture URL Input with Cloudinary Image Upload
+You are working on my existing Expense Tracker backend.
 
-Project:
-This is my existing Expense Tracker PERN application.
+My deployment target is **Render Free Web Service**, with:
 
-Stack:
-- Frontend: React 19 + TypeScript + Vite + React Router + Tailwind CSS
-- Backend: Node.js + Express
-- Database: PostgreSQL + Prisma
-- Authentication: JWT
-- Existing User/Profile Management API
-- Existing User model already has an optional profilePicture field
-- Cloudinary should be used as the image storage provider.
-- PostgreSQL should store ONLY the Cloudinary image URL.
+* PostgreSQL hosted on Neon
+* Prisma ORM
+* Cloudinary for profile-image storage
+* GitHub as the source repository
 
-IMPORTANT:
-Do not redesign or rewrite unrelated parts of the application.
-Do not create a second profile system.
-Do not duplicate existing API clients, services, types, or authentication logic.
-First inspect the existing frontend and backend architecture and reuse the existing patterns.
+I have already:
 
-CURRENT PROBLEM:
-The Edit Profile modal currently contains:
+1. Pushed the project to GitHub.
+2. Created and configured my Neon PostgreSQL project.
+3. Integrated Cloudinary.
+4. Neon has populated `.env.local` with `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, and `NEON_BRANCH`.
 
-"Profile picture URL"
+Before I deploy the backend to Render, perform a **production deployment readiness audit and preparation**.
 
-with a text input where the user manually enters something like:
+### IMPORTANT SAFETY RULES
 
-https://example.com/photo.jpg
+* Do NOT expose, print, commit, or hardcode any secret values.
+* Do NOT modify or delete my production database.
+* Do NOT run destructive database commands.
+* Do NOT run `prisma migrate reset`.
+* Do NOT use `prisma db push` for production.
+* Do NOT commit `.env`, `.env.local`, or any file containing secrets.
+* Do NOT replace existing working functionality unnecessarily.
+* Preserve the current API contracts and frontend compatibility.
+* Make changes only when necessary for production deployment.
 
-This is not the desired UX.
+### 1. Environment configuration
 
-REPLACE THIS WITH:
-A proper profile-picture upload interface where the user can:
+Inspect the backend and identify every environment variable actually required by the application.
 
-1. Click an upload/select-image area.
-2. Select an image from their device.
-3. See a preview of the selected image.
-4. Upload the image through the application backend to Cloudinary.
-5. Receive the Cloudinary secure URL.
-6. Save ONLY that URL in the user's profilePicture database field.
-7. Display the uploaded profile picture in the profile UI/navbar wherever the existing profile picture is used.
+Verify that secrets are loaded through `process.env`.
 
-==================================================
-ARCHITECTURE
-==================================================
+Make sure production configuration supports:
 
-Implement this flow:
+* `NODE_ENV`
+* `DATABASE_URL`
+* `JWT_SECRET`
+* Cloudinary credentials
+* frontend/client URL used by CORS
+* any other environment variables already required by the application
 
-Frontend
-    ↓
-Select image
-    ↓
-Validate image
-    ↓
-Preview image
-    ↓
-Send multipart/form-data to backend
-    ↓
-Backend authentication/authorization
-    ↓
-Backend uploads image to Cloudinary
-    ↓
-Cloudinary returns secure_url
-    ↓
-Backend saves secure_url in PostgreSQL
-    ↓
-Backend returns updated user/profile
-    ↓
-Frontend updates Auth/Profile state
+Do NOT invent unnecessary variables.
 
-The frontend must NOT directly write anything to PostgreSQL.
+Create or update an appropriate `.env.example` containing variable names only, for example:
 
-The frontend should preferably NOT communicate directly with Cloudinary unless the existing architecture specifically requires it. Keep Cloudinary credentials/configuration on the backend.
-
-==================================================
-PHASE 1 — INSPECT EXISTING CODE
-==================================================
-
-Before modifying anything, inspect:
-
-FRONTEND:
-- Existing Profile page/component
-- Edit Profile modal
-- User/Profile types
-- user.service.ts
-- API client
-- AuthProvider/context
-- Existing profile-picture rendering
-- Existing form validation
-- Existing notification/toast/error handling
-
-BACKEND:
-- User model in Prisma schema
-- User/profile controller
-- User/profile service
-- Existing profile update endpoint
-- Existing validation
-- Existing authentication middleware
-- Existing response utilities
-- Existing error middleware
-- Existing upload/file handling if present
-- Environment configuration
-
-Reuse existing architecture and naming conventions.
-
-Do not create duplicate API clients or duplicate authentication mechanisms.
-
-==================================================
-PHASE 2 — CLOUDINARY CONFIGURATION
-==================================================
-
-Add Cloudinary to the backend using the official Cloudinary Node.js SDK.
-
-Add environment variables such as:
-
+DATABASE_URL=
+JWT_SECRET=
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
+CLIENT_URL=
+NODE_ENV=production
 
-Do NOT expose:
-- CLOUDINARY_API_SECRET
-- CLOUDINARY_API_KEY
-- any other Cloudinary server credentials
+Never put real credentials in `.env.example`.
 
-to the frontend.
+### 2. Git safety
 
-The Cloudinary configuration must remain backend-only.
+Inspect `.gitignore`.
 
-Add/update the project's environment example file with the required variable names, but NEVER commit real credentials.
+Make sure it excludes:
 
-Create a centralized Cloudinary configuration/service following the existing backend architecture.
+.env
+.env.*
+!.env.example
 
-Example responsibility:
+Also ensure generated/local files such as:
 
-cloudinary.config(...)
-    
-Keep Cloudinary-specific logic isolated from controllers.
+* node_modules
+* Prisma local/generated artifacts where appropriate
+* logs
+* local environment files
 
-==================================================
-PHASE 3 — IMAGE UPLOAD HANDLING
-==================================================
+are not accidentally committed.
 
-Implement backend multipart/form-data handling.
+If any secret-containing file is currently tracked by Git, STOP and report it instead of exposing or rewriting the secret.
 
-Use a proper upload middleware such as multer if the project does not already have an upload solution.
+### 3. Prisma production readiness
 
-Requirements:
+Inspect the Prisma configuration and migrations.
 
-- Accept only image files.
-- Reject non-image files.
-- Add a reasonable maximum file size.
-- Do not trust only the file extension.
-- Validate MIME type.
-- Avoid storing uploaded files permanently on the application server.
-- Use memory/buffer-based upload where appropriate so the backend can send the image to Cloudinary.
-- Handle malformed uploads safely.
+Verify that:
 
-Suggested allowed image formats:
+* PostgreSQL is correctly configured.
+* Existing migrations are present.
+* Prisma Client generation works.
+* The project can use Neon in production.
+* No destructive migration command is required.
 
-- JPEG
-- PNG
-- WEBP
+The production migration command must be:
 
-You may support additional common image formats only if appropriate.
+npx prisma migrate deploy
 
-Use a reasonable maximum size such as 5 MB.
+Do NOT use:
 
-Return a clear validation error when:
-- no image is provided
-- file type is invalid
-- file is too large
-- Cloudinary upload fails
+npx prisma migrate dev
 
-==================================================
-PHASE 4 — CLOUDINARY STORAGE
-==================================================
+Do NOT use:
 
-Upload profile pictures to a dedicated Cloudinary folder, for example:
+npx prisma db push
 
-expense-tracker/profile-pictures/
+Do NOT reset the database.
 
-Use the authenticated user's ID to make uploaded resources easier to manage.
+Verify the appropriate build/deployment commands for Render.
 
-For example:
+### 4. package.json
 
-expense-tracker/profile-pictures/{userId}
+Inspect the backend `package.json`.
 
-Do not expose internal implementation details to the frontend.
+Ensure the backend has a valid production start command.
 
-Use Cloudinary's returned secure_url.
+Prefer:
 
-The database should store:
+npm start
 
-profilePicture = secure_url
+with the existing production server entry point.
 
-NOT:
-- image binary
-- base64 data
-- local filesystem path
-- Cloudinary API credentials
-- Cloudinary response object
+Do not change the application entry point unless necessary.
 
-==================================================
-PHASE 5 — DATABASE
-==================================================
+Verify that all runtime dependencies are in `dependencies`, not incorrectly placed only in `devDependencies`.
 
-Inspect the existing Prisma User model.
+### 5. Render compatibility
 
-If profilePicture already exists as:
+Verify that the Express server listens on Render's assigned port.
 
-profilePicture String?
+The application should use:
 
-reuse it.
+process.env.PORT
 
-Do NOT create another profile-picture table unless the existing architecture absolutely requires it.
+with a safe local fallback such as:
 
-The database should contain only the Cloudinary URL.
+3000
 
-Example concept:
+Do not hardcode a production-only port.
 
-profilePicture: "https://res.cloudinary.com/...."
+Also verify the server binds correctly for cloud deployment.
 
-No migration should be created if the existing field already supports this.
+### 6. Health endpoint
 
-If a schema change is genuinely required, explain why before making it.
+Check whether a simple health endpoint already exists.
 
-==================================================
-PHASE 6 — API DESIGN
-==================================================
+If it does not exist, add:
 
-Reuse the existing profile update architecture where possible.
+GET /health
 
-Prefer a dedicated endpoint for image upload if the existing profile update endpoint is JSON-only.
-
-For example:
-
-PUT /api/users/me/profile-picture
-
-or
-
-POST /api/users/me/profile-picture
-
-Use whichever HTTP method/path best matches the existing project's API conventions.
-
-The endpoint must:
-
-1. Require authentication.
-2. Get userId from the authenticated JWT/session.
-3. Accept multipart/form-data.
-4. Validate the uploaded image.
-5. Upload image to Cloudinary.
-6. Get secure_url.
-7. Update User.profilePicture.
-8. Return the standard API response envelope already used by this backend.
-
-Follow the project's existing response format:
-
-Success:
+It should return a lightweight response such as:
 
 {
-  "success": true,
-  "message": "...",
-  "data": ...
+"success": true,
+"message": "API is healthy"
 }
 
-Errors should follow the existing error middleware/error response conventions.
+It must not expose:
 
-Do not introduce a completely different response format.
+* database credentials
+* JWT secrets
+* Cloudinary secrets
+* internal filesystem information
+* sensitive user information
 
-==================================================
-PHASE 7 — PROFILE UPDATE BEHAVIOR
-==================================================
+### 7. CORS
 
-The existing Edit Profile functionality includes username editing.
+Inspect the existing CORS implementation.
 
-Do not break username editing.
+Do not use:
 
-The final Edit Profile flow should support:
+origin: "*"
 
-- Username update
-- Profile picture selection/upload
-- Removing an existing profile picture
+because this application uses authentication.
 
-The UI should make these actions clear.
+Prepare CORS so the production frontend URL can be supplied through an environment variable such as:
 
-If the user changes only the username:
-- do not upload an image.
+CLIENT_URL
 
-If the user selects an image:
-- upload it and save the Cloudinary URL.
+It should still be possible to run the backend locally during development.
 
-If the user removes the image:
-- set profilePicture to null according to the existing database/API conventions.
+Do not hardcode a future Render/Vercel frontend URL because it does not exist yet.
 
-Do not accidentally overwrite an existing profile picture when the user edits only their username.
+### 8. Authentication/security
 
-==================================================
-PHASE 8 — OLD CLOUDINARY IMAGE CLEANUP
-==================================================
+Review the production configuration for:
 
-Handle replacement of an existing profile picture properly.
+* JWT secret handling
+* Helmet
+* CORS
+* HPP
+* rate limiting
+* request logging
+* centralized error handling
+* password handling
+* authorization checks
+* validation middleware
 
-When a user uploads a new profile picture:
+Make sure errors do not expose stack traces or secrets in production.
 
-1. Upload the new image to Cloudinary.
-2. Save the new secure_url.
-3. If practical within the existing architecture, delete the previous Cloudinary asset.
+Do not weaken any existing security controls just to make deployment work.
 
-Do NOT delete the old image before the new upload/database update succeeds.
+### 9. Cloudinary
 
-The important requirement is:
+Verify that Cloudinary credentials are read from environment variables.
 
-Never leave the user with a broken profile picture because the old Cloudinary image was deleted too early.
+Do not hardcode:
 
-If deleting the previous Cloudinary asset requires storing its public_id, inspect the existing design and implement the safest approach.
+CLOUDINARY_CLOUD_NAME
+CLOUDINARY_API_KEY
+CLOUDINARY_API_SECRET
 
-Do NOT add unnecessary database fields just for cleanup unless needed.
+Verify that profile-image upload stores the Cloudinary URL in PostgreSQL as intended.
 
-If reliable deletion cannot be implemented using only the stored URL, document that limitation instead of creating fragile logic.
+Do not store uploaded image binary data in PostgreSQL.
 
-==================================================
-PHASE 9 — FRONTEND UI
-==================================================
+### 10. Account cleanup/background jobs
 
-Replace the current:
+Inspect the existing account cleanup/background-job implementation.
 
-"Profile picture URL"
+Make sure it will not accidentally delete production data immediately after deployment.
 
-text input.
+If a job runs automatically on startup, verify its retention logic and safety conditions.
 
-Create a proper upload UI.
+Do not disable existing functionality unless there is a genuine deployment problem.
 
-The Edit Profile modal should contain something similar to:
+### 11. Swagger
 
-Profile Picture
+Verify that Swagger/OpenAPI works in production without exposing secrets or internal configuration.
 
-      [ current avatar / preview ]
+Keep the existing `/api-docs` behavior unless there is a security reason to change it.
 
-      [ Choose Image ]
+### 12. Final verification
 
-      Remove picture
+Run the available backend checks, such as:
 
-Supported formats:
-JPG, PNG, WEBP • Max 5 MB
+npm install
+npx prisma generate
+npm test
 
-When an image is selected:
+or the project's existing test/lint/type-check commands.
 
-- Show immediate local preview.
-- Do not immediately save the profile.
-- Keep the selected File object in component/form state.
-- Validate before upload.
+Do not invent test commands if they do not exist.
 
-The user should clearly understand whether the image is:
-- current
-- newly selected
-- being uploaded
-- successfully saved
+Then verify that the backend can start successfully in production mode without requiring local-only files.
 
-==================================================
-PHASE 10 — FRONTEND VALIDATION
-==================================================
+### 13. Final report
 
-Validate before sending the request.
+After completing the audit, give me a concise report with:
 
-Rules:
+1. Files changed
+2. Production issues fixed
+3. Environment variables required by Render
+4. Exact Render Build Command
+5. Exact Render Start Command
+6. Whether Prisma migrations are ready
+7. Whether `.env`/secrets are protected
+8. Any remaining issue that I must fix manually
 
-- File must exist when upload is requested.
-- File must be an image.
-- Allow JPG/JPEG, PNG, WEBP.
-- Maximum size: 5 MB.
-- Reject invalid files with a user-friendly error.
+Do not deploy anything yet.
 
-Do not rely exclusively on frontend validation.
-Backend validation is mandatory.
+Do not create a Render service.
 
-==================================================
-PHASE 11 — LOADING / ERROR STATES
-==================================================
-
-Implement proper UX states:
-
-Initial:
-- Current profile picture displayed.
-
-Selecting:
-- Preview selected image.
-
-Uploading:
-- Disable relevant controls.
-- Show "Uploading..." or equivalent.
-- Prevent duplicate upload requests.
-
-Success:
-- Show updated profile picture.
-- Close modal or update the UI according to existing UX conventions.
-- Refresh/update the existing user/auth state if required.
-
-Failure:
-- Keep the current profile picture.
-- Keep the selected file if appropriate.
-- Display a clear error.
-- Do not update the UI as if the upload succeeded.
-
-Do not expose:
-- Cloudinary API errors
-- stack traces
-- internal backend errors
-- credentials
-
-to the user.
-
-==================================================
-PHASE 12 — AUTH STATE / USER STATE
-==================================================
-
-Inspect the existing AuthProvider and user state management.
-
-After a successful profile-picture update:
-
-- update the current authenticated user's profilePicture in the existing state, OR
-- use the existing refreshUser() mechanism if that is the established architecture.
-
-Do NOT introduce a second global user state.
-
-Make sure the new profile picture appears consistently in:
-- Profile page
-- Navbar/avatar
-- Any existing user menu/avatar components
-
-without requiring a full page reload if the current architecture supports this.
-
-==================================================
-PHASE 13 — TYPESCRIPT TYPES
-==================================================
-
-Update frontend TypeScript types/contracts/services as necessary.
-
-Create an appropriate API service method such as:
-
-uploadProfilePicture(file: File)
-
-Use FormData.
-
-Do NOT manually set:
-
-Content-Type: multipart/form-data
-
-when using Axios/FormData unless the existing API client specifically requires it. Let the browser/Axios set the correct multipart boundary.
-
-Reuse the existing API client.
-
-Do not use `any`.
-
-==================================================
-PHASE 14 — SECURITY
-==================================================
-
-Review the implementation for:
-
-- Authentication
-- Authorization
-- File type validation
-- File size validation
-- Malicious file handling
-- Cloudinary credential protection
-- User ID ownership
-- Input validation
-- Error exposure
-- Rate limiting if appropriate
-- Upload abuse
-
-The backend must always determine the authenticated user from the authentication mechanism.
-
-Never accept a userId from the frontend to decide whose profile picture should be updated.
-
-For example, do NOT trust:
-
-{
-  "userId": "..."
-}
-
-from the request body for authorization.
-
-Use the authenticated user's ID from the existing auth middleware.
-
-==================================================
-PHASE 15 — CLOUDINARY RESOURCE NAMING
-==================================================
-
-Use predictable Cloudinary resource organization.
-
-Example:
-
-folder:
-expense-tracker/profile-pictures
-
-resource naming should avoid unnecessary duplicates where possible.
-
-If using userId as public_id, ensure replacing the image behaves safely.
-
-Do not expose Cloudinary secrets to frontend environment variables.
-
-==================================================
-PHASE 16 — BACKEND TESTING
-==================================================
-
-Test the endpoint with Postman.
-
-Test:
-
-1. Valid JPG upload
-2. Valid PNG upload
-3. Valid WEBP upload
-4. No file
-5. Invalid file type
-6. File larger than maximum size
-7. Unauthenticated request
-8. Authenticated user upload
-9. Replace existing profile picture
-10. Remove profile picture
-11. Username-only update
-12. Cloudinary failure
-13. Database update failure
-
-Verify:
-
-- Cloudinary receives the image.
-- Database contains only the secure Cloudinary URL.
-- API returns the expected response structure.
-- Existing username update still works.
-
-==================================================
-PHASE 17 — FRONTEND TESTING
-==================================================
-
-Test:
-
-1. Open Edit Profile.
-2. Current avatar appears.
-3. Select image.
-4. Preview appears.
-5. Invalid image is rejected.
-6. Large image is rejected.
-7. Upload succeeds.
-8. Modal/state updates correctly.
-9. Navbar avatar updates.
-10. Profile page updates.
-11. Remove picture works.
-12. Username update still works.
-13. Upload failure does not corrupt existing profile picture.
-14. Refreshing the page still displays the Cloudinary image.
-
-==================================================
-PHASE 18 — CLEANUP
-==================================================
-
-Remove the old:
-
-Profile picture URL
-
-input and any obsolete URL-specific validation/state.
-
-Do not leave dead code.
-
-Do not duplicate utilities.
-
-Keep Cloudinary logic separated from:
-- controllers
-- Prisma access
-- frontend components
-
-Follow the existing project's service/controller/route architecture.
-
-==================================================
-IMPORTANT IMPLEMENTATION RULES
-==================================================
-
-1. Inspect the existing code first.
-2. Reuse existing architecture.
-3. Do not rewrite unrelated modules.
-4. Do not create duplicate API clients.
-5. Do not create duplicate authentication logic.
-6. Do not store images in PostgreSQL.
-7. Store only Cloudinary secure_url in profilePicture.
-8. Keep Cloudinary secrets backend-only.
-9. Validate uploads on both frontend and backend.
-10. Use authenticated user ID from middleware.
-11. Preserve existing username update functionality.
-12. Preserve existing API response/error conventions.
-13. Preserve existing Tailwind/theme/design system.
-14. Make the upload UI responsive.
-15. Do not use base64 images for database storage.
-16. Do not commit Cloudinary credentials.
-17. Do not break existing profile/avatar functionality.
-18. Do not use `any` in TypeScript.
-
-==================================================
-DELIVERABLE
-==================================================
-
-After implementation, provide:
-
-1. Files created.
-2. Files modified.
-3. Files removed, if any.
-4. Backend API endpoint added/changed.
-5. Cloudinary configuration/environment variables required.
-6. Database changes, if any.
-7. Frontend flow implemented.
-8. Validation rules.
-9. Tests performed.
-10. Any remaining limitations or recommended improvements.
-
-Most importantly, implement this as a production-quality feature that fits the existing Expense Tracker PERN architecture rather than creating a standalone upload system.
+Only prepare and verify the backend for safe deployment.

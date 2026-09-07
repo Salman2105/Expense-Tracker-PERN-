@@ -1,1 +1,8 @@
 Server.zip
+.neon
+node_modules/
+logs/
+*.log
+.env
+.env.*
+!.env.example

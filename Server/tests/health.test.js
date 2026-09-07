@@ -9,6 +9,16 @@ describe("Health endpoints", () => {
     expect(res.body.message).toMatch(/running/i);
   });
 
+  it("GET /health returns a lightweight health response", async () => {
+    const res = await request(app).get("/health");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      success: true,
+      message: "API is healthy",
+    });
+  });
+
   it("GET /db-check reports database connectivity", async () => {
     const res = await request(app).get("/db-check");
 

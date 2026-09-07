@@ -4,6 +4,7 @@ const healthController = require("../controllers/health.controller");
 const router = express.Router();
 
 router.get("/", healthController.getStatus);
+router.get("/health", healthController.getHealth);
 router.get("/db-check", healthController.getDbCheck);
 
 module.exports = router;
