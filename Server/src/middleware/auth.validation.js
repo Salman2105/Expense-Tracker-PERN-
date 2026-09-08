@@ -169,7 +169,50 @@ const validateLoginInput = (req, res, next) => {
     next();
 };
 
+const getForgotPasswordInputError = (body) => {
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+        return "Request body must be a valid JSON object";
+    }
+
+    const { email } = body;
+    if (email === undefined || email === null || email === "") return "Email is required";
+    if (typeof email !== "string") return "Email must be a string";
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) return "Email cannot be empty";
+    if (normalizedEmail.length > EMAIL_MAX_LENGTH) return `Email must not exceed ${EMAIL_MAX_LENGTH} characters`;
+    if (!EMAIL_REGEX.test(normalizedEmail)) return "Please provide a valid email address";
+    return null;
+};
+
+const getResetPasswordInputError = (body) => {
+    if (!body || typeof body !== "object" || Array.isArray(body)) return "Request body must be a valid JSON object";
+    const { token, password } = body;
+    if (token === undefined || token === null || token === "") return "Reset token is required";
+    if (typeof token !== "string") return "Reset token must be a string";
+    if (!token.trim()) return "Reset token cannot be empty";
+    if (password === undefined || password === null || password === "") return "Password is required";
+    if (typeof password !== "string") return "Password must be a string";
+    if (!password.trim()) return "Password cannot be empty";
+    if (password.length < PASSWORD_MIN_LENGTH) return `Password must be at least ${PASSWORD_MIN_LENGTH} characters long`;
+    if (password.length > PASSWORD_MAX_LENGTH) return `Password must not exceed ${PASSWORD_MAX_LENGTH} characters`;
+    return null;
+};
+
+const validateForgotPasswordInput = (req, res, next) => {
+    const validationError = getForgotPasswordInputError(req.body);
+    if (validationError) return errorResponse(res, 400, validationError, "VALIDATION_ERROR");
+    next();
+};
+
+const validateResetPasswordInput = (req, res, next) => {
+    const validationError = getResetPasswordInputError(req.body);
+    if (validationError) return errorResponse(res, 400, validationError, "VALIDATION_ERROR");
+    next();
+};
+
 module.exports = {
     validateRegisterInput,
     validateLoginInput,
+    validateForgotPasswordInput,
+    validateResetPasswordInput,
 };

@@ -39,3 +39,14 @@ export interface LoginResponseData {
 export type LoginResponse = ApiSuccessResponse<LoginResponseData>;
 
 export type AuthenticatedSessionResponse = ApiSuccessResponse<AuthenticatedUser>;
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  password: string;
+}
+
+export type PasswordResetResponse = ApiSuccessResponse<null>;

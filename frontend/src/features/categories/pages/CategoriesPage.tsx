@@ -136,7 +136,7 @@ function CategoriesPage() {
   return (
     <main className="space-y-6 p-4 md:p-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div><p className="text-sm font-medium uppercase tracking-wide text-[var(--text-secondary)]">Organization</p><h1 className="mt-1 text-2xl font-bold text-[var(--text-primary)]">Categories</h1></div>
+        <div><h1 className="mt-1 text-2xl font-bold text-[var(--text-primary)]">Categories</h1></div>
         <button type="button" onClick={() => setSelectedCategory(null)} className="rounded-md bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white">New category</button>
       </header>
       {isLoading ? <CategorySkeleton /> : error ? <ErrorState title="Categories unavailable" message={error} onRetry={loadCategories} /> : categories.length === 0 ? <EmptyState title="No categories available." message="Create a category to organize your transactions." action={<button type="button" onClick={() => setSelectedCategory(null)} className="rounded-md bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white">New category</button>} /> : <div className="space-y-6"><CategoryGroup title="Default categories" categories={globalCategories} spendingByCategory={spendingByCategory} currency={currency} onEdit={setSelectedCategory} onDelete={setCategoryToDelete} /><CategoryGroup title="Your categories" categories={userCategories} spendingByCategory={spendingByCategory} currency={currency} onEdit={setSelectedCategory} onDelete={setCategoryToDelete} /></div>}

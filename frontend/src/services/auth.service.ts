@@ -7,6 +7,9 @@ import type {
   LoginResponse,
   RegisterRequest,
   RegisterResponse,
+  ForgotPasswordRequest,
+  PasswordResetResponse,
+  ResetPasswordRequest,
 } from "../domain/auth/auth.contracts";
 
 export const authService = {
@@ -41,6 +44,26 @@ export const authService = {
       API_ENDPOINTS.AUTH.LOGOUT,
     );
 
+    return response.data;
+  },
+
+  forgotPassword: async (
+    payload: ForgotPasswordRequest,
+  ): Promise<PasswordResetResponse> => {
+    const response = await apiClient.post<PasswordResetResponse>(
+      API_ENDPOINTS.AUTH.FORGOT_PASSWORD,
+      payload,
+    );
+    return response.data;
+  },
+
+  resetPassword: async (
+    payload: ResetPasswordRequest,
+  ): Promise<PasswordResetResponse> => {
+    const response = await apiClient.post<PasswordResetResponse>(
+      API_ENDPOINTS.AUTH.RESET_PASSWORD,
+      payload,
+    );
     return response.data;
   },
 };

@@ -65,14 +65,14 @@ function SettingsForm({ settings, isSubmitting, onSubmit }: SettingsFormProps) {
   };
 
   return (
-    <form onSubmit={submit} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm sm:p-5">
-      <section className="border-b border-[var(--border)] pb-5" aria-labelledby="appearance-title">
-        <h2 id="appearance-title" className="text-lg font-semibold text-[var(--text-primary)]">{t("settings.appearance")}</h2>
+    <form onSubmit={submit} className="settings-form">
+      <section className="settings-form__section settings-form__section--first" aria-labelledby="appearance-title">
+        <h2 id="appearance-title" className="settings-section-title">{t("settings.appearance")}</h2>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">{t("settings.appearanceDescription")}</p>
-        <fieldset className="mt-4 grid gap-3 sm:grid-cols-3">
+        <fieldset className="settings-theme-grid">
           <legend className="sr-only">{t("settings.appearance")}</legend>
           {(["LIGHT", "DARK", "SYSTEM"] as const).map((theme) => (
-            <label key={theme} className={values.theme === theme ? "cursor-pointer rounded-md border-2 border-[var(--primary)] bg-[var(--primary-light)] p-3 text-sm font-medium text-[var(--text-primary)]" : "cursor-pointer rounded-md border border-[var(--border)] p-3 text-sm font-medium text-[var(--text-primary)]"}>
+            <label key={theme} className={values.theme === theme ? "settings-theme-option settings-theme-option--active" : "settings-theme-option"}>
               <input type="radio" name="theme" value={theme} checked={values.theme === theme} onChange={() => { setValue("theme", theme); setTheme(theme); }} className="sr-only" />
               {theme === "LIGHT" ? t("common.light") : theme === "DARK" ? t("common.dark") : t("common.system")}
             </label>
@@ -80,39 +80,39 @@ function SettingsForm({ settings, isSubmitting, onSubmit }: SettingsFormProps) {
         </fieldset>
       </section>
 
-      <section className="border-b border-[var(--border)] py-5" aria-labelledby="preferences-title">
-        <h2 id="preferences-title" className="text-lg font-semibold text-[var(--text-primary)]">{t("settings.preferences")}</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-medium text-[var(--text-primary)]" htmlFor="preferred-currency">
+      <section className="settings-form__section" aria-labelledby="preferences-title">
+        <h2 id="preferences-title" className="settings-section-title">{t("settings.preferences")}</h2>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <label className="settings-field" htmlFor="preferred-currency">
             {t("settings.preferredCurrency")}
-            <select id="preferred-currency" value={values.preferredCurrency} onChange={(event) => setValue("preferredCurrency", event.target.value as CurrencyCode)} className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] p-2 font-normal text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]">
+            <select id="preferred-currency" value={values.preferredCurrency} onChange={(event) => setValue("preferredCurrency", event.target.value as CurrencyCode)} className="settings-select">
               {CURRENCIES.map(({ code, name }) => <option key={code} value={code}>{name} ({code})</option>)}
             </select>
           </label>
-          <label className="text-sm font-medium text-[var(--text-primary)]" htmlFor="language">
+          <label className="settings-field" htmlFor="language">
             {t("settings.language")}
-            <select id="language" value={values.language} onChange={(event) => { const language = event.target.value as LanguageCode; setValue("language", language); setLanguage(language); }} className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] p-2 font-normal text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]">
+            <select id="language" value={values.language} onChange={(event) => { const language = event.target.value as LanguageCode; setValue("language", language); setLanguage(language); }} className="settings-select">
               {LANGUAGES.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
             </select>
           </label>
         </div>
       </section>
 
-      <section className="py-5" aria-labelledby="notifications-title">
-        <h2 id="notifications-title" className="text-lg font-semibold text-[var(--text-primary)]">{t("settings.notifications")}</h2>
-        <div className="mt-4 space-y-3">
+      <section className="settings-form__section settings-form__section--notifications" aria-labelledby="notifications-title">
+        <h2 id="notifications-title" className="settings-section-title">{t("settings.notifications")}</h2>
+        <div className="mt-4 space-y-2">
           {(["emailNotifications", "budgetAlerts"] as const).map((key) => (
-            <label key={key} className="flex items-center justify-between gap-4 text-sm font-medium text-[var(--text-primary)]">
-              {t(`settings.${key}`)}
-              <input type="checkbox" checked={values[key]} onChange={(event) => setValue(key, event.target.checked)} className="h-4 w-4 accent-[var(--primary)]" />
+            <label key={key} className="settings-toggle-row">
+              <span>{t(`settings.${key}`)}</span>
+              <input type="checkbox" checked={values[key]} onChange={(event) => setValue(key, event.target.checked)} className="settings-checkbox" />
             </label>
           ))}
         </div>
       </section>
 
-      <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="settings-form__footer">
         <p role="status" className="text-sm text-[var(--text-secondary)]">{error ?? (isSubmitting ? t("settings.saving") : saved ? t("settings.saved") : hasChanges ? t("settings.unsaved") : t("settings.noChanges"))}</p>
-        <button type="submit" disabled={isSubmitting || !hasChanges} className="rounded-md bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50">{isSubmitting ? t("settings.saving") : t("settings.save")}</button>
+        <button type="submit" disabled={isSubmitting || !hasChanges} className="settings-primary-button">{isSubmitting ? t("settings.saving") : t("settings.save")}</button>
       </div>
     </form>
   );

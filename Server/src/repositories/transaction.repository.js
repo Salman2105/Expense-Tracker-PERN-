@@ -127,6 +127,17 @@ const countGroupedByType = (userId, client = prisma) =>
     _count: { transactionId: true },
   });
 
+/**
+ * Count a user's transactions within a date range (dashboard monthly stats).
+ */
+const countInRange = (userId, { gte, lt }, client = prisma) =>
+  client.transaction.count({
+    where: {
+      userId,
+      transactionDate: { gte, lt },
+    },
+  });
+
 module.exports = {
   create,
   findManyWithCount,
@@ -138,4 +149,5 @@ module.exports = {
   sumAmountByTypeInRange,
   sumAmountGroupedByCategory,
   countGroupedByType,
+  countInRange,
 };

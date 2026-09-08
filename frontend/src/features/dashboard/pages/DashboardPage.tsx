@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { normalizeApiError } from "../../../api/errors";
 import CategorySpending from "../../../components/dashboard/CategorySpending";
 import SummaryCards from "../../../components/dashboard/SummaryCards";
@@ -8,6 +9,7 @@ import ErrorState from "../../../components/layout/ui/ErrorState";
 import { useCategories } from "../../categories/hooks/useCategories";
 import { useDashboard } from "../hooks/useDashboard";
 import { useSettings } from "../../settings/hooks/useSettings";
+import { useToast } from "../../../components/layout/ui/toast-context";
 
 const DEFAULT_CURRENCY = "PKR";
 
@@ -15,6 +17,8 @@ function DashboardPage() {
   const dashboardQuery = useDashboard();
   const categoriesQuery = useCategories();
   const settingsQuery = useSettings();
+  const { showToast } = useToast();
+  const shownBudgetAlerts = useRef(new Set<string>());
   const isLoading =
     dashboardQuery.isLoading ||
     categoriesQuery.isLoading ||
@@ -26,6 +30,21 @@ function DashboardPage() {
     ? categoriesQuery.data.data
     : [];
   const currency = settingsQuery.data?.data.preferredCurrency || DEFAULT_CURRENCY;
+
+  useEffect(() => {
+    for (const budget of dashboard?.budgetStatuses ?? []) {
+      if (!budget.threshold) continue;
+      const alertKey = `${budget.budgetId}:${budget.threshold}`;
+      if (shownBudgetAlerts.current.has(alertKey)) continue;
+      shownBudgetAlerts.current.add(alertKey);
+      showToast(
+        budget.threshold === 100
+          ? `${budget.categoryName} budget exceeded: ${budget.percentage.toFixed(0)}% used.`
+          : `${budget.categoryName} budget is at ${budget.percentage.toFixed(0)}% used.`,
+        budget.threshold === 100 ? "error" : "warning",
+      );
+    }
+  }, [dashboard?.budgetStatuses, showToast]);
   const loadDashboard = () =>
     void Promise.all([
       dashboardQuery.refetch(),

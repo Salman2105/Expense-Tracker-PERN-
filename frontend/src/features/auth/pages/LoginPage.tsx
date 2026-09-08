@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
+import { ArrowLeft } from "lucide-react";
 
 import { normalizeApiError } from "../../../api/errors";
 import { useAuth } from "../../../domain/auth/useAuth";
@@ -79,6 +80,15 @@ function LoginPage() {
 
   return (
     <section className="auth-form-panel" aria-labelledby="login-title">
+      <Link
+        to="/"
+        aria-label="Back to landing page"
+        className="mb-6 inline-flex items-center gap-2 text-sm font-medium transition-opacity hover:opacity-75"
+        style={{ color: "var(--text-secondary)" }}
+      >
+        <ArrowLeft size={16} strokeWidth={2} aria-hidden="true" />
+        <span>Back to home</span>
+      </Link>
       <div className="auth-form-heading">
           <p 
             className="text-sm font-semibold uppercase tracking-wide"
@@ -160,10 +170,9 @@ function LoginPage() {
                 Password
               </label>
               <Link
-                to="#"
+                to="/forgot-password"
                 className="text-sm font-medium transition-colors hover:opacity-80"
                 style={{ color: "var(--primary)" }}
-                onClick={(e) => e.preventDefault()}
               >
                 Forgot?
               </Link>

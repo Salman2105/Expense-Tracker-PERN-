@@ -9,6 +9,8 @@ import { useAuth } from "../../domain/auth/useAuth";
 import LandingPage from "../../features/landing/pages/LandingPage";
 import LoginPage from "../../features/auth/pages/LoginPage";
 import RegisterPage from "../../features/auth/pages/RegisterPage";
+import ForgotPasswordPage from "../../features/auth/pages/ForgotPasswordPage";
+import ResetPasswordPage from "../../features/auth/pages/ResetPasswordPage";
 import DashboardPage from "../../features/dashboard/pages/DashboardPage";
 import TransactionsPage from "../../features/transactions/pages/TransactionsPage";
 import CategoriesPage from "../../features/categories/pages/CategoriesPage";
@@ -47,6 +49,10 @@ function AppRoutes() {
       <Route element={<PublicAuthRoute><AuthShell /></PublicAuthRoute>}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+      </Route>
+      <Route element={<AuthShell />}>
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Route>
 
       {/* Protected routes */}

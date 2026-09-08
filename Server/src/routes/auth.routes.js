@@ -5,11 +5,14 @@ const authenticate = require("../middleware/auth.middleware");
 
 const {
   authRateLimiter,
+  passwordResetRateLimiter,
 } = require("../middleware/rateLimit.middleware");
 
 const {
   validateRegisterInput,
   validateLoginInput,
+  validateForgotPasswordInput,
+  validateResetPasswordInput,
 } = require("../middleware/auth.validation");
 
 const router = express.Router();
@@ -108,6 +111,59 @@ router.post(
   authRateLimiter,
   validateLoginInput,
   authController.login
+);
+
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Request a password reset link
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email: { type: string, format: email, maxLength: 254 }
+ *     responses:
+ *       200: { description: Generic response that prevents email enumeration }
+ *       400: { description: Validation error }
+ */
+router.post(
+  "/forgot-password",
+  passwordResetRateLimiter,
+  validateForgotPasswordInput,
+  authController.forgotPassword
+);
+
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Reset a password with a single-use token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, password]
+ *             properties:
+ *               token: { type: string }
+ *               password: { type: string, format: password, minLength: 8, maxLength: 128 }
+ *     responses:
+ *       200: { description: Password reset successfully }
+ *       400: { description: Invalid, expired, or used token }
+ */
+router.post(
+  "/reset-password",
+  passwordResetRateLimiter,
+  validateResetPasswordInput,
+  authController.resetPassword
 );
 
 /**

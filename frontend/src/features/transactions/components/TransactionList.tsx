@@ -19,9 +19,9 @@ function TransactionList({ transactions, categories, onEdit, onDelete }: Transac
 
   return (
     <>
-      <div className="hidden overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] md:block">
+      <div className="hidden max-h-[32rem] overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--surface)] md:block">
         <table className="w-full text-left text-sm">
-          <thead className="bg-[var(--surface-secondary)] text-xs uppercase tracking-wide text-[var(--text-secondary)]"><tr><th className="px-4 py-3 font-medium">Title</th><th className="px-4 py-3 font-medium">Category</th><th className="px-4 py-3 font-medium">Date</th><th className="px-4 py-3 font-medium">Type</th><th className="px-4 py-3 text-right font-medium">Amount</th><th className="px-4 py-3 text-right font-medium">Actions</th></tr></thead>
+          <thead className="sticky top-0 z-10 bg-[var(--surface-secondary)] text-xs uppercase tracking-wide text-[var(--text-secondary)]"><tr><th className="px-4 py-3 font-medium">Title</th><th className="px-4 py-3 font-medium">Category</th><th className="px-4 py-3 font-medium">Date</th><th className="px-4 py-3 font-medium">Type</th><th className="px-4 py-3 text-right font-medium">Amount</th><th className="px-4 py-3 text-right font-medium">Actions</th></tr></thead>
           <tbody className="divide-y divide-[var(--border)]">
             {transactions.map((transaction) => <tr key={transaction.transactionId}>
               <td className="max-w-48 px-4 py-3"><p className="truncate font-medium text-[var(--text-primary)]">{transaction.title}</p>{transaction.note && <p className="mt-1 truncate text-xs text-[var(--text-secondary)]">{transaction.note}</p>}</td>
@@ -34,7 +34,7 @@ function TransactionList({ transactions, categories, onEdit, onDelete }: Transac
           </tbody>
         </table>
       </div>
-      <div className="space-y-3 md:hidden">
+      <div className="max-h-[32rem] space-y-3 overflow-y-auto md:hidden">
         {transactions.map((transaction) => <article key={transaction.transactionId} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"><div className="flex justify-between gap-3"><div className="min-w-0"><h2 className="truncate font-semibold text-[var(--text-primary)]">{transaction.title}</h2><p className="mt-1 text-sm text-[var(--text-secondary)]">{categoryNames.get(transaction.categoryId) ?? "Uncategorized"} · {dateFormatter.format(new Date(transaction.transactionDate))}</p></div><span className={transaction.type === "INCOME" ? "shrink-0 font-semibold text-[var(--income)]" : "shrink-0 font-semibold text-[var(--expense)]"}>{formatCurrency(Number(transaction.amount))}</span></div>{transaction.note && <p className="mt-3 text-sm text-[var(--text-secondary)]">{transaction.note}</p>}<div className="mt-4 flex gap-4"><button type="button" onClick={() => onEdit(transaction)} className="text-sm font-medium text-[var(--primary)]">Edit</button><button type="button" onClick={() => onDelete(transaction)} className="text-sm font-medium text-[var(--expense)]">Delete</button></div></article>)}
       </div>
     </>

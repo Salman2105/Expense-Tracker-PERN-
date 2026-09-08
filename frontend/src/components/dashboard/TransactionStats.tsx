@@ -21,7 +21,7 @@ function TransactionStatsItem({
 
 function TransactionStats({ transactionStats }: TransactionStatsProps) {
   return (
-    <section className="flex h-[22rem] flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
+    <section className="flex h-auto min-h-[22rem] flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:h-[22rem]">
       <h3 className="mb-5 text-lg font-semibold text-[var(--text-primary)]">
         Transaction Statistics
       </h3>
@@ -38,6 +38,10 @@ function TransactionStats({ transactionStats }: TransactionStatsProps) {
         <TransactionStatsItem
           label="Expense Transactions"
           value={transactionStats.expenseTransactions}
+        />
+        <TransactionStatsItem
+          label="Transactions This Month"
+          value={transactionStats.totalTransactions}
         />
       </div>
     </section>

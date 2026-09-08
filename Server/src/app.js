@@ -16,6 +16,7 @@ const accountRoutes = require("./routes/account.routes");
 const categoryRoutes = require("./routes/category.routes");
 const transactionRoutes = require("./routes/transaction.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
+const budgetRoutes = require("./routes/budget.routes");
 
 
 const {
@@ -72,6 +73,8 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/transactions", transactionRoutes);
 
 app.use("/api/dashboard", dashboardRoutes);
+
+app.use("/api/budgets", budgetRoutes);
 
 // Must be registered last: catches errors from every route above,
 // including malformed-JSON body-parser errors from express.json().

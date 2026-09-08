@@ -3,6 +3,7 @@ const { TRANSACTION_TYPES, MAX_PAGE_SIZE } = require("../constants");
 const AppError = require("../utils/AppError");
 const categoryRepository = require("../repositories/category.repository");
 const transactionRepository = require("../repositories/transaction.repository");
+const budgetAlertService = require("./budgetAlert.service");
 
 const VALID_TRANSACTION_TYPES = TRANSACTION_TYPES;
 
@@ -132,6 +133,8 @@ const createTransaction = async (userId, data = {}) => {
       transactionDate: parsedTransactionDate,
     }),
   });
+
+  void budgetAlertService.evaluateAfterTransaction(transaction);
 
   return transaction;
 };
@@ -436,7 +439,9 @@ const updateTransaction = async (
   }
 
   // Update transaction
-  return transactionRepository.update(transactionId, updateData);
+  const transaction = await transactionRepository.update(transactionId, updateData);
+  void budgetAlertService.evaluateAfterTransaction(transaction);
+  return transaction;
 };
 
 /**
@@ -465,6 +470,8 @@ const deleteTransaction = async (
 
   // Delete only user's transaction
   await transactionRepository.deleteById(transactionId);
+
+  void budgetAlertService.evaluateAfterTransaction(transaction);
 
   return {
     message:

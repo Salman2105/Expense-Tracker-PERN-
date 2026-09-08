@@ -19,6 +19,19 @@ const authRateLimiter = rateLimit({
   skip: () => env.nodeEnv === "test",
 });
 
+const passwordResetRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: {
+    success: false,
+    message: "Too many password reset requests. Please try again later.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => env.nodeEnv === "test",
+});
+
 module.exports = {
   authRateLimiter,
+  passwordResetRateLimiter,
 };

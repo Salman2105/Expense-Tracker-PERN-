@@ -2,6 +2,7 @@ const cron = require("node-cron");
 const {
   processEligibleAccounts,
 } = require("../services/account.service");
+const passwordResetRepository = require("../repositories/passwordReset.repository");
 
 let isCleanupRunning = false;
 
@@ -20,6 +21,7 @@ const startAccountCleanupJob = () => {
     console.log("[ACCOUNT CLEANUP] Job started");
 
     try {
+      await passwordResetRepository.deleteExpired();
       const summary = await processEligibleAccounts();
 
       console.log(

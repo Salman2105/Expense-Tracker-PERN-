@@ -163,6 +163,34 @@ const logout = async (req, res) => {
     }
 };
 
+const forgotPassword = async (req, res) => {
+    try {
+        const message = await authService.requestPasswordReset(req.body.email);
+        return successResponse(res, 200, message, null);
+    } catch (error) {
+        console.error("Forgot password error:", error);
+        return successResponse(
+            res,
+            200,
+            "If an account exists with this email, a password reset link has been sent.",
+            null
+        );
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const result = await authService.resetPassword(req.body);
+        if (!result.success) {
+            return errorResponse(res, 400, result.message, "INVALID_RESET_TOKEN");
+        }
+        return successResponse(res, 200, "Password reset successfully.", null);
+    } catch (error) {
+        console.error("Reset password error:", error);
+        return errorResponse(res, 500, "Internal server error", "RESET_PASSWORD_ERROR");
+    }
+};
+
 /**
  * Authentication test endpoint (GET /api/auth/protected)
  *
@@ -184,4 +212,6 @@ module.exports = {
     getMe,
     logout,
     checkAuthStatus,
+    forgotPassword,
+    resetPassword,
 };

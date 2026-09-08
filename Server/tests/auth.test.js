@@ -1,5 +1,8 @@
 const request = require("supertest");
+const emailService = require("../src/services/email.service");
 const app = require("../src/app");
+
+jest.spyOn(emailService, "sendEmail").mockResolvedValue({});
 
 const validUser = {
   username: "johndoe",
@@ -92,6 +95,33 @@ describe("Auth endpoints", () => {
 
       expect(res.status).toBe(401);
       expect(res.body.success).toBe(false);
+    });
+  });
+
+  describe("Password reset", () => {
+    it("returns the same response for existing and unknown emails", async () => {
+      await request(app).post("/api/auth/register").send(validUser);
+
+      const existing = await request(app)
+        .post("/api/auth/forgot-password")
+        .send({ email: validUser.email });
+      const unknown = await request(app)
+        .post("/api/auth/forgot-password")
+        .send({ email: "nobody@example.com" });
+
+      expect(existing.status).toBe(200);
+      expect(unknown.status).toBe(200);
+      expect(existing.body.message).toBe(unknown.body.message);
+      expect(emailService.sendEmail).toHaveBeenCalled();
+    });
+
+    it("rejects invalid reset tokens", async () => {
+      const res = await request(app)
+        .post("/api/auth/reset-password")
+        .send({ token: "invalid-token", password: "NewPassword123!" });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/invalid or expired/i);
     });
   });
 

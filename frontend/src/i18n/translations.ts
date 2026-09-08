@@ -3,6 +3,7 @@ export const translations = {
     settings: {
       account: "Account",
       title: "Settings",
+      description: "Personalize your experience and manage your preferences.",
       appearance: "Appearance",
       appearanceDescription: "Choose how the application should be displayed.",
       preferences: "Preferences",

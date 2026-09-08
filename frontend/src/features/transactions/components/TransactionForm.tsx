@@ -157,8 +157,8 @@ function TransactionForm({
             Amount
             <input
               type="number"
-              min="0.01"
-              step="0.01"
+              min="0"
+              step="10"
               value={values.amount}
               onChange={(event) => setValue("amount", event.target.value)}
               className="mt-1 w-full rounded-md border border-[var(--border)] p-2 font-normal"

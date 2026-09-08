@@ -49,14 +49,14 @@ function CategoryForm({ category, isSubmitting, onClose, onSubmit }: CategoryFor
           <label className="block text-sm font-medium text-[var(--text-primary)]">Icon
             <div className="mt-1 flex items-center gap-3">
               <CategoryIcon icon={icon} />
-              <select value={icon} onChange={(event) => setIcon(event.target.value)} className="min-w-0 flex-1 rounded-md border border-[var(--border)] p-2 font-normal">
+              <select value={icon} onChange={(event) => setIcon(event.target.value)} className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--surface)] p-2 font-normal">
                 {category && !categoryIconOptions.includes(category.icon) && <option value={category.icon}>{category.icon}</option>}
                 {categoryIconOptions.map((option) => <option key={option} value={option}>{option}</option>)}
               </select>
             </div>
           </label>
-          <label className="block text-sm font-medium text-[var(--text-primary)]">Type
-            <select value={type} onChange={(event) => setType(event.target.value as CategoryType)} className="mt-1 w-full rounded-md border border-[var(--border)] p-2 font-normal">
+          <label className="block text-sm font-medium text-[var(--text-primary)] ">Type
+            <select value={type} onChange={(event) => setType(event.target.value as CategoryType)} className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] p-2 font-normal">
               <option value="EXPENSE">Expense</option>
               <option value="INCOME">Income</option>
             </select>

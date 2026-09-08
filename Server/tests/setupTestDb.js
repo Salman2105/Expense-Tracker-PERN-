@@ -5,9 +5,12 @@ const prisma = require("../config/prisma");
  * from a known-empty state. Order matters because of FK constraints.
  */
 const resetDatabase = async () => {
+  await prisma.budgetAlert.deleteMany();
+  await prisma.budget.deleteMany();
   await prisma.transaction.deleteMany();
   await prisma.category.deleteMany();
   await prisma.userSettings.deleteMany();
+  await prisma.passwordResetToken.deleteMany();
   await prisma.user.deleteMany();
 };
 

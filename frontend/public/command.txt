@@ -1,262 +1,682 @@
-You are working on my existing Expense Tracker backend.
+You are working on my existing Expense Tracker PERN application.
 
-My deployment target is **Render Free Web Service**, with:
+The project already has:
 
-* PostgreSQL hosted on Neon
-* Prisma ORM
-* Cloudinary for profile-image storage
-* GitHub as the source repository
+* Backend: Node.js + Express + PostgreSQL + Prisma
+* Frontend: React 19 + TypeScript + Vite
+* Existing authentication and JWT/session architecture
+* Existing UserSettings model and User Settings APIs
+* Existing frontend settings page
+* Existing API/service architecture
+* Existing dashboard, transaction, category, and budget-related functionality
 
-I have already:
+I need you to implement the actual functionality for these two settings:
 
-1. Pushed the project to GitHub.
-2. Created and configured my Neon PostgreSQL project.
-3. Integrated Cloudinary.
-4. Neon has populated `.env.local` with `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, and `NEON_BRANCH`.
+1. **Email Notifications**
+2. **Budget Alerts**
 
-Before I deploy the backend to Render, perform a **production deployment readiness audit and preparation**.
+Currently, the frontend only displays these as UI checkboxes:
 
-### IMPORTANT SAFETY RULES
+```tsx
+<section className="py-5" aria-labelledby="notifications-title">
+  <h2
+    id="notifications-title"
+    className="text-lg font-semibold text-[var(--text-primary)]"
+  >
+    {t("settings.notifications")}
+  </h2>
 
-* Do NOT expose, print, commit, or hardcode any secret values.
-* Do NOT modify or delete my production database.
-* Do NOT run destructive database commands.
-* Do NOT run `prisma migrate reset`.
-* Do NOT use `prisma db push` for production.
-* Do NOT commit `.env`, `.env.local`, or any file containing secrets.
-* Do NOT replace existing working functionality unnecessarily.
-* Preserve the current API contracts and frontend compatibility.
-* Make changes only when necessary for production deployment.
+  <div className="mt-4 space-y-3">
+    {(["emailNotifications", "budgetAlerts"] as const).map((key) => (
+      <label
+        key={key}
+        className="flex items-center justify-between gap-4 text-sm font-medium text-[var(--text-primary)]"
+      >
+        {t(`settings.${key}`)}
 
-### 1. Environment configuration
+        <input
+          type="checkbox"
+          checked={values[key]}
+          onChange={(event) =>
+            setValue(key, event.target.checked)
+          }
+          className="h-4 w-4 accent-[var(--primary)]"
+        />
+      </label>
+    ))}
+  </div>
+</section>
+```
 
-Inspect the backend and identify every environment variable actually required by the application.
+These currently have no real backend functionality.
 
-Verify that secrets are loaded through `process.env`.
+Your task is to implement this properly across the entire stack.
 
-Make sure production configuration supports:
+IMPORTANT:
+Do not create a separate notification system if the existing architecture can cleanly support these settings through the existing UserSettings system.
 
-* `NODE_ENV`
-* `DATABASE_URL`
-* `JWT_SECRET`
-* Cloudinary credentials
-* frontend/client URL used by CORS
-* any other environment variables already required by the application
+==================================================
+PHASE 1 — INSPECT THE EXISTING CODEBASE
+=======================================
 
-Do NOT invent unnecessary variables.
+Before modifying anything, inspect the existing project.
 
-Create or update an appropriate `.env.example` containing variable names only, for example:
+Identify:
 
-DATABASE_URL=
-JWT_SECRET=
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-CLIENT_URL=
-NODE_ENV=production
+Backend:
 
-Never put real credentials in `.env.example`.
+* Prisma UserSettings model
+* UserSettings migration/schema
+* User Settings controller
+* User Settings service
+* User Settings routes
+* User Settings validators
+* Authentication/user lookup logic
+* Existing transaction service
+* Existing budget-related logic/models
+* Existing email configuration/service, if any
+* Existing background jobs/cron jobs
+* Existing logger/error handling
+* Existing API response utilities
 
-### 2. Git safety
+Frontend:
 
-Inspect `.gitignore`.
+* Settings page/component
+* Settings state management
+* User settings API service
+* User settings TypeScript contracts/types
+* React Query queries/mutations
+* Query invalidation logic
+* Existing toast/error handling
+* Existing API client
+* Existing authentication context
 
-Make sure it excludes:
+Do NOT duplicate existing functionality.
 
-.env
-.env.*
-!.env.example
+Follow the existing architecture and naming conventions.
 
-Also ensure generated/local files such as:
+==================================================
+PHASE 2 — USER SETTINGS DATABASE SUPPORT
+========================================
 
-* node_modules
-* Prisma local/generated artifacts where appropriate
-* logs
-* local environment files
+Check whether the UserSettings database model already contains fields equivalent to:
 
-are not accidentally committed.
+* emailNotifications
+* budgetAlerts
 
-If any secret-containing file is currently tracked by Git, STOP and report it instead of exposing or rewriting the secret.
+If these fields already exist:
 
-### 3. Prisma production readiness
+* Reuse them.
+* Do not create duplicate fields.
 
-Inspect the Prisma configuration and migrations.
+If they do not exist:
 
-Verify that:
+* Add appropriate Boolean fields to UserSettings.
 
-* PostgreSQL is correctly configured.
-* Existing migrations are present.
-* Prisma Client generation works.
-* The project can use Neon in production.
-* No destructive migration command is required.
+Recommended defaults:
 
-The production migration command must be:
+emailNotifications: true
+budgetAlerts: true
 
-npx prisma migrate deploy
+Use Prisma and create the required migration.
 
-Do NOT use:
+Make sure existing users receive safe default values.
 
-npx prisma migrate dev
+The relationship must remain:
 
-Do NOT use:
+User 1 ---- 1 UserSettings
 
-npx prisma db push
+Do not create a separate table for these two boolean preferences unless there is a strong architectural reason.
 
-Do NOT reset the database.
+==================================================
+PHASE 3 — BACKEND SETTINGS API
+==============================
 
-Verify the appropriate build/deployment commands for Render.
+Update the existing User Settings API so these values can be:
 
-### 4. package.json
+* Retrieved
+* Updated
+* Persisted
 
-Inspect the backend `package.json`.
+The existing GET settings endpoint should return:
 
-Ensure the backend has a valid production start command.
-
-Prefer:
-
-npm start
-
-with the existing production server entry point.
-
-Do not change the application entry point unless necessary.
-
-Verify that all runtime dependencies are in `dependencies`, not incorrectly placed only in `devDependencies`.
-
-### 5. Render compatibility
-
-Verify that the Express server listens on Render's assigned port.
-
-The application should use:
-
-process.env.PORT
-
-with a safe local fallback such as:
-
-3000
-
-Do not hardcode a production-only port.
-
-Also verify the server binds correctly for cloud deployment.
-
-### 6. Health endpoint
-
-Check whether a simple health endpoint already exists.
-
-If it does not exist, add:
-
-GET /health
-
-It should return a lightweight response such as:
-
+```json
 {
-"success": true,
-"message": "API is healthy"
+  "emailNotifications": true,
+  "budgetAlerts": true
 }
+```
 
-It must not expose:
+or the equivalent structure already established by the project's API contracts.
 
-* database credentials
-* JWT secrets
-* Cloudinary secrets
-* internal filesystem information
-* sensitive user information
+The existing update settings endpoint should accept these values.
 
-### 7. CORS
+Example:
 
-Inspect the existing CORS implementation.
+```json
+{
+  "emailNotifications": false,
+  "budgetAlerts": true
+}
+```
 
-Do not use:
+Only supplied fields should be updated if the existing API follows PATCH semantics.
 
-origin: "*"
+Do not break the existing settings fields such as:
 
-because this application uses authentication.
+* currency
+* theme
+* language
+* date format
+* other existing preferences
 
-Prepare CORS so the production frontend URL can be supplied through an environment variable such as:
+Update backend validation accordingly.
 
-CLIENT_URL
+Reject invalid values instead of silently accepting incorrect types.
 
-It should still be possible to run the backend locally during development.
+==================================================
+PHASE 4 — EMAIL NOTIFICATION ARCHITECTURE
+=========================================
 
-Do not hardcode a future Render/Vercel frontend URL because it does not exist yet.
+Determine whether the project already has an email service.
 
-### 8. Authentication/security
+If an email service already exists:
 
-Review the production configuration for:
+* Reuse it.
 
-* JWT secret handling
-* Helmet
-* CORS
-* HPP
-* rate limiting
-* request logging
-* centralized error handling
-* password handling
-* authorization checks
-* validation middleware
+If no email service exists:
 
-Make sure errors do not expose stack traces or secrets in production.
+* Create a clean email service abstraction.
+* Keep provider-specific implementation isolated.
+* Use environment variables for credentials/configuration.
+* Never hardcode email credentials.
+* Never store email provider credentials in the database.
 
-Do not weaken any existing security controls just to make deployment work.
+Example architecture:
 
-### 9. Cloudinary
+```text
+src/
+  services/
+    email.service.js
+```
 
-Verify that Cloudinary credentials are read from environment variables.
+or follow the project's existing service structure.
 
-Do not hardcode:
+The email service should expose reusable functionality such as:
 
-CLOUDINARY_CLOUD_NAME
-CLOUDINARY_API_KEY
-CLOUDINARY_API_SECRET
+```text
+sendEmail()
+sendBudgetAlert()
+```
 
-Verify that profile-image upload stores the Cloudinary URL in PostgreSQL as intended.
+Do not tightly couple email sending directly to controllers.
 
-Do not store uploaded image binary data in PostgreSQL.
+==================================================
+PHASE 5 — EMAIL NOTIFICATIONS FUNCTIONALITY
+===========================================
 
-### 10. Account cleanup/background jobs
+The `emailNotifications` setting must actually control whether application emails are sent.
 
-Inspect the existing account cleanup/background-job implementation.
+Whenever the application is about to send a user notification email:
 
-Make sure it will not accidentally delete production data immediately after deployment.
+1. Load the user's UserSettings.
+2. Check `emailNotifications`.
+3. If false:
 
-If a job runs automatically on startup, verify its retention logic and safety conditions.
+   * Do not send the email.
+   * Do not throw an error.
+4. If true:
 
-Do not disable existing functionality unless there is a genuine deployment problem.
+   * Send the email through the email service.
 
-### 11. Swagger
+Create a reusable helper/service for this instead of duplicating this condition throughout controllers.
 
-Verify that Swagger/OpenAPI works in production without exposing secrets or internal configuration.
+For example:
 
-Keep the existing `/api-docs` behavior unless there is a security reason to change it.
+```text
+shouldSendEmailNotification(userId)
+```
 
-### 12. Final verification
+or an equivalent clean service abstraction.
 
-Run the available backend checks, such as:
+The preference must be enforced on the backend.
 
-npm install
-npx prisma generate
-npm test
+Do NOT rely only on the frontend checkbox.
 
-or the project's existing test/lint/type-check commands.
+A user should still be protected from receiving notification emails even if they call the API directly.
 
-Do not invent test commands if they do not exist.
+==================================================
+PHASE 6 — BUDGET ALERT FUNCTIONALITY
+====================================
 
-Then verify that the backend can start successfully in production mode without requiring local-only files.
+The `budgetAlerts` setting must have actual behavior.
 
-### 13. Final report
+Inspect the existing budget/transaction/dashboard implementation and determine how spending/budget information is currently calculated.
 
-After completing the audit, give me a concise report with:
+Implement budget alert detection using the existing domain logic.
 
-1. Files changed
-2. Production issues fixed
-3. Environment variables required by Render
-4. Exact Render Build Command
-5. Exact Render Start Command
-6. Whether Prisma migrations are ready
-7. Whether `.env`/secrets are protected
-8. Any remaining issue that I must fix manually
+Do not invent a completely separate budget calculation if one already exists.
 
-Do not deploy anything yet.
+The system should be capable of determining when a user's spending reaches an appropriate budget-alert threshold.
 
-Do not create a Render service.
+If the project already has a configured threshold, reuse it.
 
-Only prepare and verify the backend for safe deployment.
+If there is currently no threshold mechanism, implement a reasonable configurable threshold using the existing architecture.
+
+Recommended default:
+
+* Alert when spending reaches 80% of the relevant budget.
+* Optionally send another alert when the budget reaches/exceeds 100%.
+
+However, first inspect the existing budget model and business rules. If the project already defines a different threshold, follow the existing rules instead.
+
+==================================================
+PHASE 7 — PREVENT DUPLICATE BUDGET ALERT EMAILS
+===============================================
+
+Do not send the same budget alert repeatedly every time a transaction is created after crossing the threshold.
+
+Implement duplicate-alert protection.
+
+For example:
+
+If a monthly budget is:
+
+$1,000
+
+and the user reaches:
+
+$800 → send 80% alert
+
+then:
+
+$820
+$850
+$900
+
+should NOT send another 80% email every time.
+
+Likewise, the 100% alert should be sent only once for that budget period.
+
+Use the existing database architecture where possible.
+
+If persistence is required to track alert delivery, add a clean model/table such as a budget alert/event record rather than storing temporary state in memory.
+
+The implementation must work correctly after server restarts and deployments.
+
+==================================================
+PHASE 8 — WHEN SHOULD BUDGET ALERTS RUN?
+========================================
+
+Determine the best trigger based on the existing application architecture.
+
+Prefer checking budget thresholds after relevant transaction mutations because a new expense can immediately cause a threshold to be crossed.
+
+For example:
+
+Create transaction
+↓
+Save transaction
+↓
+Recalculate relevant budget spending
+↓
+Check budget threshold
+↓
+Check budgetAlerts setting
+↓
+Check emailNotifications setting
+↓
+Send alert if required
+
+Do not block the transaction request unnecessarily if the email provider is slow.
+
+If appropriate for the existing architecture, use an asynchronous/background mechanism.
+
+Also consider budget updates/deletions if they can affect the alert state.
+
+==================================================
+PHASE 9 — FRONTEND SETTINGS
+===========================
+
+Update the existing frontend settings implementation.
+
+The current checkbox values must come from the backend UserSettings response.
+
+Do NOT maintain independent fake/default UI state.
+
+The flow should be:
+
+GET User Settings
+↓
+React Query
+↓
+Settings page
+↓
+Checkbox reflects backend value
+
+When the checkbox changes:
+
+Checkbox
+↓
+Mutation
+↓
+PATCH/PUT User Settings API
+↓
+Database
+↓
+React Query cache update/invalidation
+↓
+UI reflects persisted value
+
+Use the existing React Query architecture.
+
+Do not introduce another state-management library.
+
+==================================================
+PHASE 10 — FRONTEND UX
+======================
+
+Make the settings interaction production-ready.
+
+When changing:
+
+Email Notifications
+
+or:
+
+Budget Alerts
+
+provide appropriate UI feedback.
+
+Handle:
+
+* Loading state
+* Successful update
+* Failed update
+* API/network failure
+* Authentication/session expiry
+
+If the existing project has toast/notification components, reuse them.
+
+If an update fails:
+
+* Restore the previous checkbox state.
+* Show an appropriate error message.
+
+Avoid making the UI appear successfully updated when the backend rejected the change.
+
+If optimistic updates are already used by the project's settings architecture, follow that architecture correctly and rollback on failure.
+
+==================================================
+PHASE 11 — TYPESCRIPT CONTRACTS
+===============================
+
+Update all frontend TypeScript contracts/types/interfaces related to UserSettings.
+
+Make sure:
+
+```ts
+emailNotifications: boolean;
+budgetAlerts: boolean;
+```
+
+are represented correctly.
+
+Remove any temporary/mock typing that treats these values as frontend-only state.
+
+Ensure there are no TypeScript errors.
+
+==================================================
+PHASE 12 — API SERVICE
+======================
+
+Use the existing User Settings service.
+
+Do not call Axios directly from the Settings component.
+
+For example, follow the existing architecture:
+
+```text
+SettingsPage
+   ↓
+useQuery/useMutation
+   ↓
+settings.service.ts
+   ↓
+api/client.ts
+   ↓
+Backend
+```
+
+Do not create another Axios client.
+
+Use the project's canonical API client.
+
+==================================================
+PHASE 13 — SECURITY
+===================
+
+Make sure users can only read/update their own settings.
+
+Do not trust a userId supplied by the frontend if the backend can obtain it from the authenticated JWT/session.
+
+The backend should derive the current user from authentication middleware.
+
+Ensure:
+
+* Authorization is enforced.
+* Validation is enforced.
+* Users cannot modify another user's settings.
+* Email preferences cannot be changed for another account.
+
+==================================================
+PHASE 14 — ERROR HANDLING AND LOGGING
+=====================================
+
+Follow the project's existing:
+
+* error middleware
+* response utilities
+* logger
+* HTTP status conventions
+
+Do not expose:
+
+* email provider credentials
+* SMTP/API secrets
+* internal stack traces
+* sensitive configuration
+
+Log useful email/budget-alert failures using the existing logger.
+
+A failed notification email should not incorrectly cause a successful transaction to become failed unless the existing business requirements explicitly require that behavior.
+
+==================================================
+PHASE 15 — ENVIRONMENT CONFIGURATION
+====================================
+
+If email sending is not already configured, add environment variables using the existing environment configuration pattern.
+
+For example:
+
+```env
+EMAIL_PROVIDER=
+EMAIL_HOST=
+EMAIL_PORT=
+EMAIL_USER=
+EMAIL_PASSWORD=
+EMAIL_FROM=
+```
+
+Use the appropriate variables for the selected email provider.
+
+Do NOT commit actual credentials.
+
+Update `.env.example` if the project has one.
+
+Make sure production deployment configuration can provide these values through environment variables.
+
+==================================================
+PHASE 16 — TESTING
+==================
+
+Add/update backend tests for:
+
+1. User settings return emailNotifications.
+2. User settings return budgetAlerts.
+3. User can enable email notifications.
+4. User can disable email notifications.
+5. User can enable budget alerts.
+6. User can disable budget alerts.
+7. Settings persist after logout/login.
+8. One user cannot modify another user's settings.
+9. Invalid boolean values are rejected.
+10. Email notification is not sent when emailNotifications=false.
+11. Email notification is sent when emailNotifications=true.
+12. Budget alert is not sent when budgetAlerts=false.
+13. Budget alert is sent when budgetAlerts=true and threshold is crossed.
+14. Duplicate budget alerts are prevented.
+15. 100% budget alert behavior works correctly if implemented.
+16. Email failure is handled safely.
+17. Existing settings functionality still works.
+
+Frontend tests/checks should cover:
+
+1. Backend settings populate the checkboxes.
+2. Changing Email Notifications persists.
+3. Changing Budget Alerts persists.
+4. Refreshing the page retains the correct values.
+5. Failed mutation restores the previous value.
+6. Loading state works correctly.
+7. No TypeScript errors.
+
+==================================================
+PHASE 17 — API/DOCUMENTATION
+============================
+
+Update Swagger/OpenAPI documentation if the project already uses Swagger.
+
+Document:
+
+* emailNotifications
+* budgetAlerts
+* GET settings response
+* UPDATE settings request/response
+
+Keep the API documentation consistent with the actual implementation.
+
+==================================================
+PHASE 18 — DATABASE/MIGRATION SAFETY
+====================================
+
+Before changing Prisma schema:
+
+Inspect the existing schema and migrations.
+
+Do not destroy existing data.
+
+If fields need to be added:
+
+* Use safe defaults.
+* Generate a proper Prisma migration.
+* Ensure existing users remain valid.
+
+Do not use destructive database commands.
+
+==================================================
+PHASE 19 — FINAL ARCHITECTURE CHECK
+===================================
+
+After implementation, verify the final flow:
+
+USER
+↓
+Settings Page
+↓
+React Query
+↓
+settings.service.ts
+↓
+api/client.ts
+↓
+User Settings API
+↓
+UserSettings Service
+↓
+PostgreSQL
+
+For budget alerts:
+
+Transaction Creation
+↓
+Transaction Service
+↓
+Budget Calculation
+↓
+Threshold Detection
+↓
+UserSettings
+├── budgetAlerts?
+│       ↓
+│    yes
+│
+└── emailNotifications?
+↓
+yes
+↓
+Email Service
+↓
+Email Provider
+
+The frontend must NOT be responsible for enforcing notification preferences.
+
+The backend must be the source of truth.
+
+==================================================
+IMPORTANT IMPLEMENTATION RULES
+==============================
+
+1. First inspect the existing codebase before changing anything.
+2. Reuse existing UserSettings infrastructure.
+3. Reuse existing React Query architecture.
+4. Reuse the canonical Axios client.
+5. Reuse existing authentication.
+6. Reuse existing error handling and response utilities.
+7. Reuse existing logger.
+8. Reuse existing budget/transaction calculations.
+9. Do not create duplicate API clients.
+10. Do not create duplicate settings systems.
+11. Do not hardcode email credentials.
+12. Do not trust frontend-only notification settings.
+13. Do not break existing settings.
+14. Do not break existing transaction behavior.
+15. Do not introduce unnecessary dependencies.
+16. Keep the implementation production-ready and maintainable.
+17. Follow the existing project's naming and folder conventions.
+18. Do not rewrite unrelated parts of the application.
+
+==================================================
+FINAL DELIVERABLE
+=================
+
+After completing the implementation:
+
+1. List every file created.
+2. List every file modified.
+3. Explain the database changes.
+4. Explain the backend API changes.
+5. Explain the email notification flow.
+6. Explain the budget alert flow.
+7. Explain duplicate-alert prevention.
+8. Explain the frontend React Query integration.
+9. Explain environment variables required.
+10. Explain how to test the complete feature.
+11. Run the relevant backend/frontend tests.
+12. Run TypeScript/build/lint checks where available.
+13. Report any remaining issues clearly.
+
+Most importantly:
+
+Do not just make the checkboxes visually functional.
+
+Implement the complete end-to-end functionality so that **Email Notifications** and **Budget Alerts** are real persisted settings with real backend behavior and frontend integration.

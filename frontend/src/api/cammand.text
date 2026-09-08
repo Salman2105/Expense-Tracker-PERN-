@@ -1,736 +1,523 @@
-# PHASE 15 — FINAL FRONTEND CLEANUP & PRODUCTION READINESS
+Redesign the existing Settings page UI/UX into a modern, premium split-layout design while preserving ALL existing functionality, API integrations, state management, validation, and backend behavior.
 
-You are working on my existing **Expense Tracker PERN frontend**.
+IMPORTANT:
+Do not rewrite or break the existing settings logic.
+This task is primarily a FRONTEND UI/UX redesign.
 
-Tech stack:
+CURRENT DESIGN:
+The Settings page currently has:
+- Appearance section with Light / Dark / System
+- Preferred currency dropdown
+- Language dropdown
+- Email notifications checkbox
+- Budget alerts checkbox
+- Save changes button
+- Account Management section
+- Manage account button
 
-* React 19
-* TypeScript
-* Vite
-* React Router
-* Axios
-* TanStack React Query
-* Tailwind CSS
-* Backend: Express + PostgreSQL + Prisma
-* Authentication: JWT
-* Frontend architecture is feature-based
+The current page is a centered single-column layout.
 
-## IMPORTANT RULES
+NEW DESIGN DIRECTION:
+Transform it into a two-column split experience.
 
-1. **Inspect the entire existing frontend before making changes.**
-2. Do NOT rebuild the frontend from scratch.
-3. Do NOT introduce new features.
-4. Do NOT change working backend APIs or API contracts.
-5. Preserve the existing UI/design/theme.
-6. Preserve the existing authentication/session architecture.
-7. Preserve the existing React Query architecture.
-8. Reuse existing utilities/types/components instead of creating duplicates.
-9. Do not use `any` to hide TypeScript problems.
-10. Do not remove code/dependencies/types unless you verify they are unused.
-11. Keep `src/api/client.ts` as the canonical Axios/API client.
-12. Do not create another API client.
-13. Keep the existing feature-based architecture.
-14. Make production-safe changes only.
-15. After each major cleanup, verify that imports and references remain valid.
-16. Do not make unnecessary refactors just for stylistic preference.
+==================================================
+1. OVERALL LAYOUT
+==================================================
 
----
+Create a responsive two-column layout:
 
-# 15.1 REMOVE DEAD CODE
+LEFT SIDE:
+The actual Settings content should remain the primary focus.
 
-Audit the complete frontend source code.
+RIGHT SIDE:
+Add a visually attractive finance/productivity-themed visual area containing subtle animations/effects.
 
-Find and remove:
+Desktop layout:
 
-* Unused components
-* Unused pages
-* Old placeholder implementations
-* Commented-out obsolete code
-* Unused functions
-* Unused variables
-* Unused imports
-* Debugging code
-* Unused hooks
-* Old authentication/session logic
-* Old API implementations
-* Temporary development code
-* Duplicate implementations that were replaced by newer implementations
+--------------------------------------------------
+|                                                |
+|  SETTINGS CONTENT       |    VISUAL AREA       |
+|  LEFT / 55-60%          |    RIGHT / 40-45%    |
+|                         |                      |
+|  Appearance             |   animated visual    |
+|  Preferences            |   / illustration     |
+|  Notifications          |                      |
+|  Account management     |   finance-themed     |
+|                         |   decorative effects |
+--------------------------------------------------
 
-Search the entire project before deleting anything.
+The left side should be slightly wider than the right side.
 
-Do not delete code merely because it looks unused. Confirm that it has no active references.
+The page should feel balanced, spacious and premium.
 
----
+Do NOT make the right side overpower the actual settings.
 
-# 15.2 REMOVE UNUSED DEPENDENCIES
+==================================================
+2. LEFT SETTINGS PANEL
+==================================================
 
-Inspect:
+Keep all existing settings functionality.
 
-* `package.json`
-* `package-lock.json`
+Improve the visual hierarchy and spacing.
 
-Determine which dependencies are actually used.
+Use:
 
-Search the source code before removing any dependency.
+- Clean typography
+- Better section spacing
+- Subtle borders
+- Soft shadows
+- Rounded corners
+- Better hover states
+- Smooth transitions
+- Consistent input/button styling
 
-Remove only genuinely unused dependencies.
+Keep these sections:
 
-Pay particular attention to packages that may have remained from previous implementation stages.
+Appearance
+Preferences
+Notifications
+Account Management
 
-After cleanup:
+Do not remove or rename existing functionality unless absolutely necessary.
 
-```bash
-npm install
-```
+The Save Changes functionality must continue working exactly as before.
 
-or the appropriate package-manager command for the existing project.
+The "No changes to save" state should remain functional.
 
-Make sure the lockfile remains consistent.
+==================================================
+3. RIGHT VISUAL AREA
+==================================================
 
----
+Create a modern finance/productivity visual that complements an expense tracking application.
 
-# 15.3 REMOVE UNUSED / DUPLICATE TYPES
+Preferred visual concept:
 
-Audit:
+A floating financial dashboard / abstract money-management illustration.
 
-```text
-src/types/
-src/features/**/types/
-src/features/**/contracts/
-```
+For example:
 
-Find:
+- Floating expense cards
+- Small transaction cards
+- Circular spending chart
+- Animated percentage indicator
+- Small wallet/money icon
+- Floating coins/shapes
+- Abstract gradient blobs
+- Subtle glowing circles
+- Small upward/downward financial indicators
+- Decorative grid or dots
 
-* Unused interfaces
-* Duplicate interfaces
-* Duplicate API response types
-* Old request/response types
-* Unused enums
-* Redundant aliases
-* Types that duplicate existing domain models
+The visual should communicate:
 
-Maintain a clear distinction:
+"Organize your money. Understand your spending. Stay in control."
 
-```text
-models/
-    Domain/entity representations
+Do NOT use a generic stock image.
 
-contracts/
-    API request/response contracts
+Prefer a CSS/SVG-based illustration or lightweight React component so that:
+- No external image dependency is required
+- It loads quickly
+- It matches the application's brand
+- It can animate smoothly
 
-feature types/
-    UI/feature-specific types
-```
+If an illustration/image is used, keep it minimal and modern.
 
-If an existing type already represents something correctly, reuse it instead of creating another equivalent type.
+==================================================
+4. ANIMATION
+==================================================
 
-Do not change API contracts unnecessarily.
+Add subtle premium animations.
 
----
-
-# 15.4 REMOVE DUPLICATE UTILITIES
-
-Search the entire project for duplicate functionality.
-
-Check specifically for duplicates involving:
-
-* API clients
-* Axios configuration
-* Token handling
-* Authentication helpers
-* Error handling
-* Response handling
-* Date formatting
-* Currency formatting
-* Validation
-* Pagination
-* Local storage/session storage
-* Navigation helpers
-* Constants
-
-The canonical API client must remain:
-
-```text
-src/api/client.ts
-```
-
-It should be the central HTTP client.
-
-Do not reintroduce or keep a second Axios client such as the previously duplicated:
-
-```text
-src/lib/api/apiClient.ts
-```
-
-if it is no longer used.
-
-Verify all services use the canonical client.
-
----
-
-# 15.5 COMPONENT ORGANIZATION REVIEW
-
-Review the entire component architecture.
-
-Maintain the existing feature-based structure.
-
-Aim for a clean organization similar to:
-
-```text
-src/
-├── api/
-├── app/
-├── components/
-│   ├── common/
-│   ├── layout/
-│   └── ui/
-├── features/
-│   ├── auth/
-│   ├── dashboard/
-│   ├── transactions/
-│   ├── categories/
-│   ├── profile/
-│   ├── settings/
-│   └── account/
-├── hooks/
-├── lib/
-├── routes/
-├── types/
-└── styles/
-```
-
-Do not force this exact structure if the existing structure already follows the same architectural principles.
-
-Check that:
-
-* Feature-specific components stay inside their feature.
-* Shared components are actually reusable.
-* Components are not duplicated.
-* Components are not unnecessarily large.
-* Business/API logic is not unnecessarily embedded in UI components.
-* Shared UI components remain generic.
-* Feature-specific logic stays feature-specific.
-
-Do not split components into tiny components without a real maintainability benefit.
-
----
-
-# 15.6 API / SERVICE ARCHITECTURE REVIEW
-
-Verify the frontend follows this flow:
-
-```text
-Page / Component
-        ↓
-React Query hook
-        ↓
-Feature service
-        ↓
-src/api/client.ts
-        ↓
-Backend API
-```
+The animation should feel similar to a modern SaaS/product landing page.
 
 Examples:
 
-```text
-DashboardPage
-    ↓
-useDashboardQuery()
-    ↓
-dashboard.service.ts
-    ↓
-client.ts
-```
-
-Verify that React components do NOT directly call Axios.
+- Floating cards slowly moving up/down
+- Decorative circles gently floating
+- Chart elements appearing with slight delay
+- Soft pulse/glow effect
+- Very subtle rotation of decorative elements
+- Fade/slide entrance when page loads
+- Hover interaction on visual cards
 
-Review services for:
+Animation principles:
 
-* Correct endpoint usage
-* Correct HTTP methods
-* Correct request types
-* Correct response types
-* Consistent error handling
-* No duplicated API logic
-* No hardcoded API base URLs
-* No authentication logic duplicated inside individual services
+- Smooth
+- Slow
+- Elegant
+- Not distracting
+- No excessive bouncing
+- No flashy effects
 
-Review all major services:
+Use CSS animations or Framer Motion ONLY if Framer Motion already exists in the project.
 
-```text
-auth.service.ts
-user.service.ts
-settings.service.ts
-category.service.ts
-transaction.service.ts
-dashboard.service.ts
-```
+Do not add a new heavy dependency just for animation unless necessary.
 
-Use the actual filenames already present in the project if they differ.
+Respect prefers-reduced-motion.
 
-Do not change working backend contracts.
+If the user has reduced motion enabled, disable or significantly reduce non-essential animations.
 
----
+==================================================
+5. BRAND COLORS
+==================================================
 
-# 15.7 ROUTING REVIEW
+IMPORTANT:
 
-Audit the complete React Router configuration.
+Preserve the application's existing color system.
 
-Verify public routes such as:
+The primary brand color is:
 
-```text
-/
-/login
-/register
-```
+--primary: #25AE84
 
-and protected routes such as:
+Continue using the existing CSS variables instead of hardcoding colors everywhere.
 
-```text
-/dashboard
-/transactions
-/categories
-/profile
-/settings
-/account
-```
+Maintain the existing theme system.
 
-Use the actual routes present in the application.
+Use the existing variables for:
 
-Verify:
+- Primary
+- Primary hover
+- Primary light
+- Background
+- Foreground/text
+- Borders
+- Muted text
+- Cards
 
-* ProtectedRoute works correctly.
-* Public-route guard works correctly.
-* Authenticated users are redirected away from login/register where intended.
-* Unauthenticated users cannot access protected pages.
-* Auth initialization state is handled correctly.
-* Redirects use `replace` where appropriate.
-* Logout redirects correctly.
-* Account deletion redirects correctly.
-* Unknown routes display the 404 page.
-* No duplicate route protection logic exists inside individual pages.
+The visual area can use variations of the existing green palette.
 
-Preserve the existing AuthProvider architecture.
+For example:
 
----
+Primary:
+#25AE84
 
-# 15.8 ENVIRONMENT CONFIGURATION REVIEW
+Primary hover:
+#1F9873
 
-Audit environment configuration.
+Primary light:
+#E5F7F1
 
-Check:
+Do NOT introduce an unrelated color palette.
 
-```text
-.env
-.env.example
-.gitignore
-```
+The design should feel like the same application, only significantly more polished.
 
-The frontend should use the established API variable:
+==================================================
+6. VISUAL EFFECT
+==================================================
 
-```text
-VITE_API_BASE_URL
-```
+Use a soft, modern background effect on the right side.
 
-Verify:
+Possible approach:
 
-* No hardcoded production API URL exists in source code.
-* No database credentials exist in frontend files.
-* No JWT secret exists in frontend files.
-* No backend secrets exist in `VITE_*` variables.
-* Environment variables are accessed consistently.
-* `.env` is not accidentally committed.
-* `.env.example` documents required non-secret variables.
+- Very subtle radial gradients
+- Soft green glow
+- Blurred circular shapes
+- Transparent geometric elements
+- Dotted/grid pattern
+- Floating cards
 
-Remember:
+Example concept:
 
-**Anything exposed through Vite `VITE_*` variables is available to the browser.**
+A large soft green radial glow behind a central finance illustration.
 
-Therefore never place secrets in them.
+Around it:
 
----
+      ◯
+          ┌──────────────┐
+          │  Spending    │
+          │   64%        │
+          └──────────────┘
 
-# 15.9 TYPESCRIPT STRICTNESS REVIEW
+   ┌──────────────┐
+   │ + $250       │
+   │ Income       │
+   └──────────────┘
 
-Inspect:
+          ◯ Chart
 
-```text
-tsconfig.json
-```
+Everything should be subtle and elegant.
 
-Keep strict TypeScript enabled where already configured.
+==================================================
+7. DARK MODE
+==================================================
 
-Run:
+The Settings page already supports:
 
-```bash
-npx tsc --noEmit
-```
+Light
+Dark
+System
 
-Fix all TypeScript errors.
+Make sure the redesigned page works correctly in all three modes.
 
-Look for:
+Do not create a separate hardcoded dark theme.
 
-* `any`
-* Unsafe type assertions
-* `as unknown as`
-* Incorrect nullable handling
-* Incorrect optional properties
-* Incorrect API response assumptions
-* Missing type safety
-* Unreachable code
-* Incorrect function signatures
+Use the application's existing theme variables.
 
-Do NOT solve errors by adding `any`.
+The right-side visual should automatically adapt to dark mode.
 
-Use the existing domain/API types properly.
+For example:
 
-Final target:
+Light mode:
+- Soft green glow
+- White/light cards
+- Dark text
 
-```text
-0 TypeScript errors
-```
+Dark mode:
+- Dark cards
+- Softer green glow
+- Light text
+- Subtle borders
 
----
+Avoid extremely bright glowing effects in dark mode.
 
-# 15.10 ESLINT REVIEW
+==================================================
+8. RESPONSIVE DESIGN
+==================================================
 
-Run the existing lint command, preferably:
+This is VERY IMPORTANT.
 
-```bash
-npm run lint
-```
+Desktop:
+Two-column layout.
 
-Fix all legitimate lint issues.
+Tablet:
+Reduce the visual area's width while keeping the split layout if space allows.
 
-Check for:
+Mobile:
+Switch to a single-column layout.
 
-* Unused imports
-* Unused variables
-* React hook dependency issues
-* Incorrect hook usage
-* Unreachable code
-* Unsafe patterns
-* Unnecessary eslint disables
-* Stale eslint suppressions
+Recommended mobile order:
 
-Search for:
+1. Page heading
+2. Settings content
+3. Right-side visual
 
-```text
-eslint-disable
-eslint-disable-next-line
-```
+The visual should become smaller on mobile.
 
-Review every suppression.
+Do NOT allow:
+- Horizontal scrolling
+- Overflow
+- Broken cards
+- Tiny unreadable text
+- Buttons going outside the viewport
+- Dropdowns overflowing the screen
 
-Do not disable ESLint rules merely to make the command pass.
+Test approximately:
 
-Final target:
+320px
+375px
+390px
+768px
+1024px
+1280px
+1440px+
 
-```text
-0 lint errors
-```
+==================================================
+9. PAGE HEADER
+==================================================
 
-Warnings should also be reviewed and cleaned where practical.
+Improve the existing:
 
----
+ACCOUNT
+Settings
 
-# 15.11 PRODUCTION BUILD
+header.
 
-After all cleanup, run:
+Keep the "ACCOUNT" eyebrow label.
 
-```bash
-npm run build
-```
+Make "Settings" visually stronger.
 
-The production build must succeed.
+Optionally add a subtle supporting sentence such as:
 
-Then run:
+"Personalize your experience and manage your preferences."
 
-```bash
-npm run preview
-```
+Keep it concise.
 
-Test the production build.
+Do not make the header oversized.
 
-Verify the following flows:
+==================================================
+10. SETTINGS CARD DESIGN
+==================================================
 
-## Authentication
+Instead of making the entire page look like one giant card, create a cleaner composition.
 
-* Register
-* Login
-* Logout
-* Auth initialization
-* Session expiration
-* 401 handling
+Possible structure:
 
-## Protected routing
+Left column:
 
-* Unauthenticated access to protected routes
-* Authenticated access to protected routes
-* Public route behavior
-* 404 route
+Settings
+Personalize your experience and manage your preferences.
 
-## Dashboard
+┌──────────────────────────────────────┐
+│ Appearance                            │
+│                                      │
+│ Light     Dark     System             │
+│                                      │
+│ ──────────────────────────────────── │
+│ Preferences                          │
+│                                      │
+│ Currency       Language               │
+│                                      │
+│ ──────────────────────────────────── │
+│ Notifications                        │
+│                                      │
+│ Email notifications        □         │
+│ Budget alerts              □         │
+│                                      │
+│ ──────────────────────────────────── │
+│ No changes to save       Save changes│
+└──────────────────────────────────────┘
 
-* Loading skeleton
-* Successful data
-* Empty states
-* API errors
+Account management can either remain as a second card below or become a separate clean section.
 
-## Transactions
+Do not unnecessarily change the information architecture.
 
-* List
-* Create
-* Update
-* Delete
-* Loading
-* Error
-* Empty state
+==================================================
+11. MICRO-INTERACTIONS
+==================================================
 
-## Categories
+Add polished interactions:
 
-* List
-* Create
-* Update
-* Delete
-* Loading
-* Error
-* Empty state
+Appearance buttons:
+- Smooth background transition
+- Slight border highlight
+- Subtle scale/hover effect
 
-## Profile
+Dropdowns:
+- Smooth focus state
+- Brand-color focus ring
 
-* Load profile
-* Update profile
-* Loading
-* Error
-* Success feedback
+Checkboxes:
+- Smooth checked transition
+- Use brand primary color
 
-## Settings
+Buttons:
+- Smooth hover
+- Slight elevation
+- Disabled state should remain visually clear
 
-* Load settings
-* Update settings
-* Loading
-* Error
-* Success feedback
+Manage Account:
+- Subtle hover animation
 
-## Account
+All interactions should be accessible.
 
-* Account information/status
-* Delete account
-* Confirmation dialog
-* Successful deletion
-* Session cleanup
-* Redirect to login
+==================================================
+12. ACCESSIBILITY
+==================================================
 
-## Global UX
+Do not sacrifice accessibility for visual design.
 
-* Skeleton loading states
-* Toast/notifications
-* API errors
-* 401
-* 403
-* 404
-* Network errors
-* Form submission feedback
-* Empty states
+Ensure:
 
-## Responsive/accessibility
+- Proper labels
+- Keyboard navigation
+- Visible focus states
+- Good color contrast
+- Buttons remain actual buttons
+- Inputs/selects remain accessible
+- Checkboxes remain accessible
+- Reduced-motion support
 
-Check:
+Do not replace semantic controls with clickable divs.
 
-* Desktop
-* Tablet
-* Mobile
-* Keyboard navigation
-* Form labels
-* Buttons
-* Focus states
-* Semantic elements
-* Basic accessibility issues
+==================================================
+13. CODE QUALITY
+==================================================
 
-Do not redesign the UI.
+Before implementing:
 
----
+Inspect the existing Settings page and identify:
+- Existing components
+- State management
+- API calls
+- Theme handling
+- CSS variables
+- Reusable UI components
 
-# 15.12 FINAL FRONTEND ARCHITECTURE REVIEW
+Reuse existing components wherever possible.
 
-Perform a final architectural audit.
+Do NOT duplicate API logic.
 
-The architecture should conceptually remain:
+Do NOT change backend APIs.
 
-```text
-                    React Application
-                           │
-              ┌────────────┴────────────┐
-              │                         │
-           Routing                  AuthProvider
-              │                         │
-              └────────────┬────────────┘
-                           │
-                     Feature Pages
-                           │
-                     React Query
-                           │
-                    Feature Services
-                           │
-                     API Client
-                           │
-                         Axios
-                           │
-                      Backend API
-```
+Do NOT change database models.
 
-Confirm:
+Do NOT modify settings behavior.
 
-### Authentication
+Only refactor frontend structure/styles where necessary.
 
-* AuthProvider owns auth state.
-* Token/session handling is centralized.
-* Axios attaches the token centrally.
-* 401 handling is coordinated with the auth/session layer.
-* Logout cleans up frontend session state.
+Prefer reusable components such as:
 
-### Server state
+SettingsLayout
+SettingsCard
+AppearanceSelector
+PreferenceSection
+NotificationSettings
+SettingsVisual
 
-* React Query handles server state.
-* Queries are centralized through feature hooks/services.
-* Mutations invalidate appropriate queries.
-* No unnecessary manual server-state management exists.
+if that improves maintainability.
 
-### API
+Keep TypeScript types strict.
 
-* One canonical Axios client.
-* Feature services encapsulate API calls.
-* Components do not directly call Axios.
+Avoid:
+- any
+- unnecessary dependencies
+- duplicated styles
+- inline styles everywhere
+- hardcoded theme colors
 
-### Routing
+==================================================
+14. IMPORTANT DESIGN GOAL
+==================================================
 
-* Public/protected routes are correctly separated.
-* Auth initialization is handled.
-* Redirect behavior is consistent.
+The final result should feel like a modern SaaS finance application.
 
-### Components
+Think:
 
-* Feature components remain feature-specific.
-* Shared components are genuinely reusable.
-* No unnecessary duplication.
+Clean + Minimal + Premium + Financial + Calm
 
-### Types
+NOT:
 
-* Domain models are reused.
-* API contracts are explicit.
-* No unnecessary duplicate types.
-* No `any` used to hide errors.
+Overly colorful
+Over-animated
+Corporate/boring
+Generic dashboard
+Stock-photo-heavy
 
-### Configuration
+The right visual should make the page feel alive while the left side remains highly usable.
 
-* Environment variables are correct.
-* No secrets are exposed.
-* API base URL configuration is centralized.
+The settings themselves must remain the main functional focus.
 
-### Code quality
+==================================================
+15. ACCEPTANCE CRITERIA
+==================================================
 
-* TypeScript passes.
-* ESLint passes.
-* Production build passes.
-* No obvious dead code remains.
-* No unnecessary dependencies remain.
+After implementation verify:
 
----
+[ ] Existing settings functionality still works
+[ ] Appearance switching still works
+[ ] Currency selection still works
+[ ] Language selection still works
+[ ] Email notification setting still works
+[ ] Budget alert setting still works
+[ ] Save Changes still works
+[ ] Disabled Save Changes state still works
+[ ] Account management still works
+[ ] Light theme works
+[ ] Dark theme works
+[ ] System theme works
+[ ] Desktop two-column layout works
+[ ] Tablet layout works
+[ ] Mobile layout works
+[ ] No horizontal overflow
+[ ] Right-side animation works smoothly
+[ ] Animation respects prefers-reduced-motion
+[ ] Existing #25AE84 brand identity is preserved
+[ ] No unnecessary dependencies added
+[ ] TypeScript/build passes
+[ ] Existing tests still pass
 
-# FINAL VALIDATION COMMANDS
+IMPORTANT:
+Do not stop after making the page technically functional.
 
-Run the appropriate existing commands, including:
+Polish the spacing, alignment, typography, visual hierarchy, animation timing, shadows, borders and responsive behavior until the result looks production-ready.
 
-```bash
-npm run lint
-npx tsc --noEmit
-npm run build
-npm run preview
-```
-
-If the project has additional existing test commands, run those as well.
-
-Do not modify scripts merely to make checks pass.
-
----
-
-# IMPORTANT FINAL REPORT
-
-When finished, provide a concise report containing:
-
-### 1. Files changed
-
-List the important files changed.
-
-### 2. Dead code removed
-
-Summarize what was removed.
-
-### 3. Dependencies removed
-
-List any removed dependencies and why.
-
-### 4. Type cleanup
-
-Summarize duplicate/unused types removed.
-
-### 5. Utility cleanup
-
-Summarize duplicate utilities/API clients removed.
-
-### 6. Architecture improvements
-
-Summarize meaningful architectural cleanup.
-
-### 7. TypeScript
-
-Report:
-
-```text
-TypeScript: PASS/FAIL
-Errors: X
-```
-
-### 8. ESLint
-
-Report:
-
-```text
-ESLint: PASS/FAIL
-Errors: X
-Warnings: X
-```
-
-### 9. Production build
-
-Report:
-
-```text
-Production build: PASS/FAIL
-```
-
-### 10. Remaining issues
-
-List anything that could not safely be fixed.
-
-Do not hide failures.
-
-## MOST IMPORTANT
-
-This is a **cleanup and production-readiness phase**, not a feature-development phase.
-
-Prefer:
-
-```text
-inspect → verify → clean → test → build → report
-```
-
-Do not:
-
-```text
-rewrite → redesign → introduce new architecture
-```
-
-Preserve the existing working functionality and architecture while making the codebase cleaner, safer, more maintainable, and production-ready.
+The final page should look substantially more modern than the current screenshot while still clearly belonging to the same application.

@@ -37,6 +37,8 @@ describe("User settings endpoints", () => {
     expect(res.status).toBe(200);
     expect(res.body.data.theme).toBe("SYSTEM");
     expect(res.body.data.preferredCurrency).toBe("PKR");
+    expect(res.body.data.emailNotifications).toBe(false);
+    expect(res.body.data.budgetAlerts).toBe(false);
   });
 
   it("updates settings", async () => {
@@ -58,6 +60,29 @@ describe("User settings endpoints", () => {
       .send({ theme: "NEON" });
 
     expect(res.status).toBe(400);
+  });
+
+  it("persists notification preferences and rejects invalid boolean values", async () => {
+    await request(app).get("/api/users/me/settings").set(authHeader(token));
+
+    const update = await request(app)
+      .patch("/api/users/me/settings")
+      .set(authHeader(token))
+      .send({ emailNotifications: true, budgetAlerts: true });
+
+    const read = await request(app)
+      .get("/api/users/me/settings")
+      .set(authHeader(token));
+
+    const invalid = await request(app)
+      .patch("/api/users/me/settings")
+      .set(authHeader(token))
+      .send({ emailNotifications: "true" });
+
+    expect(update.status).toBe(200);
+    expect(read.body.data.emailNotifications).toBe(true);
+    expect(read.body.data.budgetAlerts).toBe(true);
+    expect(invalid.status).toBe(400);
   });
 
   it("rejects unsupported currency and language values", async () => {

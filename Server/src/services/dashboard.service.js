@@ -1,6 +1,7 @@
 const { validate: isValidUuid } = require("uuid");
 const AppError = require("../utils/AppError");
 const transactionRepository = require("../repositories/transaction.repository");
+const budgetRepository = require("../repositories/budget.repository");
 
 const getDashboard = async (userId) => {
   // Validate authenticated user ID
@@ -31,6 +32,8 @@ const getDashboard = async (userId) => {
     monthlySpending,
     categorySpending,
     transactionStats,
+    transactionsThisMonth,
+    budgets,
   ] = await Promise.all([
     transactionRepository.sumAmountByType(userId, "INCOME"),
     transactionRepository.sumAmountByType(userId, "EXPENSE"),
@@ -40,6 +43,11 @@ const getDashboard = async (userId) => {
     }),
     transactionRepository.sumAmountGroupedByCategory(userId, "EXPENSE"),
     transactionRepository.countGroupedByType(userId),
+    transactionRepository.countInRange(userId, {
+      gte: startOfMonth,
+      lt: startOfNextMonth,
+    }),
+    budgetRepository.findActiveForUser(userId, startOfMonth, startOfNextMonth),
   ]);
 
   const income = Number(totalIncome._sum.amount || 0);
@@ -61,6 +69,7 @@ const getDashboard = async (userId) => {
     totalTransactions: 0,
     incomeTransactions: 0,
     expenseTransactions: 0,
+    transactionsThisMonth,
   };
 
   transactionStats.forEach((item) => {
@@ -79,6 +88,23 @@ const getDashboard = async (userId) => {
     transactionStatistics.incomeTransactions +
     transactionStatistics.expenseTransactions;
 
+  const budgetStatuses = await Promise.all(budgets.map(async (budget) => {
+    const aggregate = await budgetRepository.sumExpenseForBudget(budget);
+    const amount = Number(aggregate._sum.amount || 0);
+    const limit = Number(budget.amount);
+    const percentage = limit > 0 ? (amount / limit) * 100 : 0;
+
+    return {
+      budgetId: budget.budgetId,
+      categoryId: budget.categoryId,
+      categoryName: budget.category.name,
+      amount,
+      limit,
+      percentage,
+      threshold: percentage >= 100 ? 100 : percentage >= 80 ? 80 : null,
+    };
+  }));
+
   return {
     totalIncome: income,
     totalExpenses: expenses,
@@ -86,6 +112,7 @@ const getDashboard = async (userId) => {
     monthlySpending: monthlySpendingAmount,
     categorySpending: categorySpendingData,
     transactionStats: transactionStatistics,
+    budgetStatuses,
   };
 };
 

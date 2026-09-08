@@ -1,8 +1,19 @@
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
 
 const { generateToken } = require("../utils/jwt");
 const { BCRYPT_SALT_ROUNDS } = require("../constants");
+const env = require("../../config/env");
+const prisma = require("../../config/prisma");
+const emailService = require("./email.service");
+const passwordResetRepository = require("../repositories/passwordReset.repository");
 const userRepository = require("../repositories/user.repository");
+const logger = require("../utils/logger");
+
+const PASSWORD_RESET_MESSAGE = "If an account exists with this email, a password reset link has been sent.";
+
+const hashResetToken = (token) =>
+  crypto.createHash("sha256").update(token).digest("hex");
 
 /**
  * Register a new user
@@ -172,7 +183,98 @@ const loginUser = async ({ email, password }) => {
   };
 };
 
+const requestPasswordReset = async (email) => {
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await userRepository.findByEmail(normalizedEmail);
+
+  if (!user || user.deletedAt || user.status !== "ACTIVE") {
+    return PASSWORD_RESET_MESSAGE;
+  }
+
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = hashResetToken(rawToken);
+  const expiresAt = new Date(
+    Date.now() + env.passwordResetTokenExpiresMinutes * 60 * 1000
+  );
+
+  await prisma.$transaction(async (tx) => {
+    await passwordResetRepository.deleteByUserId(user.userId, tx);
+    await passwordResetRepository.create({
+      userId: user.userId,
+      tokenHash,
+      expiresAt,
+    }, tx);
+  });
+
+  const resetUrl = `${env.frontendUrl}/reset-password?token=${encodeURIComponent(rawToken)}`;
+  try {
+    await emailService.sendEmail({
+      to: user.email,
+      subject: "Reset your Expense Tracker password",
+      text: [
+        "Reset your password",
+        "",
+        "We received a request to reset your Expense Tracker password.",
+        `Use this link to create a new password: ${resetUrl}`,
+        `This link will expire in ${env.passwordResetTokenExpiresMinutes} minutes.`,
+        "If you did not request a password reset, you can safely ignore this email.",
+      ].join("\n"),
+      html: `<h1>Reset your password</h1><p>We received a request to reset your Expense Tracker password.</p><p><a href="${resetUrl}">Reset Password</a></p><p>This link will expire in ${env.passwordResetTokenExpiresMinutes} minutes.</p><p>If you did not request a password reset, you can safely ignore this email.</p>`,
+    });
+    logger.info("Password reset email sent", { userId: user.userId });
+  } catch (error) {
+    await passwordResetRepository.deleteByUserId(user.userId);
+    logger.error("Password reset email delivery failed", {
+      userId: user.userId,
+      error: error.message,
+    });
+  }
+
+  return PASSWORD_RESET_MESSAGE;
+};
+
+const resetPassword = async ({ token, password }) => {
+  const tokenHash = hashResetToken(token);
+  const now = new Date();
+  const resetToken = await passwordResetRepository.findValidByHash(tokenHash, now);
+
+  if (!resetToken || resetToken.user.deletedAt || resetToken.user.status !== "ACTIVE") {
+    return { success: false, message: "Invalid or expired password reset token." };
+  }
+
+  const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+  try {
+    await prisma.$transaction(async (tx) => {
+      const claim = await tx.passwordResetToken.updateMany({
+        where: {
+          id: resetToken.id,
+          usedAt: null,
+          expiresAt: { gt: now },
+        },
+        data: { usedAt: now },
+      });
+
+      if (claim.count !== 1) {
+        throw new Error("PASSWORD_RESET_TOKEN_INVALID");
+      }
+
+      await userRepository.updatePasswordHash(resetToken.userId, passwordHash, tx);
+      await passwordResetRepository.deleteByUserId(resetToken.userId, tx);
+    });
+  } catch (error) {
+    if (error.message === "PASSWORD_RESET_TOKEN_INVALID") {
+      return { success: false, message: "Invalid or expired password reset token." };
+    }
+    throw error;
+  }
+
+  logger.info("Password reset completed", { userId: resetToken.userId });
+  return { success: true };
+};
+
 module.exports = {
   registerUser,
   loginUser,
+  requestPasswordReset,
+  resetPassword,
 };
