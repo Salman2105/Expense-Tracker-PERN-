@@ -83,17 +83,6 @@ function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             </span>
             Spendex
           </h1>
-
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-xl text-white md:hidden"
-              aria-label="Close navigation menu"
-            >
-              ×
-            </button>
-          )}
         </div>
 
         {/* Navigation */}

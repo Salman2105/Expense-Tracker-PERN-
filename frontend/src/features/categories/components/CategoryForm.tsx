@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { CreateCategoryRequest } from "../../../domain/contracts/category.contracts";
 import type { CategoryType } from "../../../domain/enums/category-type";
 import type { Category } from "../../../domain/models/category";
+import ResponsiveSelect from "../../../components/ui/ResponsiveSelect";
 import CategoryIcon from "./CategoryIcon";
 import { categoryIconOptions } from "./category-icon-options";
 
@@ -36,7 +37,7 @@ function CategoryForm({ category, isSubmitting, onClose, onSubmit }: CategoryFor
 
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/40 sm:items-center sm:justify-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="category-form-title">
-      <form onSubmit={handleSubmit} className="w-full rounded-t-lg bg-[var(--surface)] p-5 sm:max-w-md sm:rounded-lg">
+      <form onSubmit={handleSubmit} className="w-full max-w-full overflow-x-hidden rounded-t-lg bg-[var(--surface)] p-5 box-border sm:max-w-md sm:rounded-lg">
         <div className="mb-5 flex items-center justify-between gap-4">
           <h2 id="category-form-title" className="text-lg font-semibold text-[var(--text-primary)]">{category ? "Edit category" : "New category"}</h2>
           <button type="button" onClick={onClose} disabled={isSubmitting} className="text-sm text-[var(--text-secondary)]">Close</button>
@@ -46,20 +47,38 @@ function CategoryForm({ category, isSubmitting, onClose, onSubmit }: CategoryFor
           <label className="block text-sm font-medium text-[var(--text-primary)]">Name
             <input value={name} onChange={(event) => setName(event.target.value)} className="mt-1 w-full rounded-md border border-[var(--border)] p-2 font-normal" />
           </label>
-          <label className="block text-sm font-medium text-[var(--text-primary)]">Icon
-            <div className="mt-1 flex items-center gap-3">
+          <label className="block min-w-0 text-sm font-medium text-[var(--text-primary)]">
+            <span className="block">Icon</span>
+            <div className="mt-1 flex min-w-0 items-center gap-3">
               <CategoryIcon icon={icon} />
-              <select value={icon} onChange={(event) => setIcon(event.target.value)} className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--surface)] p-2 font-normal">
-                {category && !categoryIconOptions.includes(category.icon) && <option value={category.icon}>{category.icon}</option>}
-                {categoryIconOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-              </select>
+              <div className="min-w-0 flex-1 max-w-full box-border">
+                <ResponsiveSelect
+                  label="Category icon"
+                  value={icon}
+                  options={categoryIconOptions.map((option) => ({
+                    value: option,
+                    label: option,
+                  }))}
+                  onChange={(nextIcon) => setIcon(nextIcon)}
+                  className="w-full"
+                />
+              </div>
             </div>
           </label>
-          <label className="block text-sm font-medium text-[var(--text-primary)] ">Type
-            <select value={type} onChange={(event) => setType(event.target.value as CategoryType)} className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] p-2 font-normal">
-              <option value="EXPENSE">Expense</option>
-              <option value="INCOME">Income</option>
-            </select>
+          <label className="block min-w-0 text-sm font-medium text-[var(--text-primary)]">
+            <span className="block">Type</span>
+            <div className="mt-1 min-w-0 w-full max-w-full box-border">
+              <ResponsiveSelect
+                label="Category type"
+                value={type}
+                options={[
+                  { value: "EXPENSE", label: "Expense" },
+                  { value: "INCOME", label: "Income" },
+                ]}
+                onChange={(nextType) => setType(nextType as CategoryType)}
+                className="w-full"
+              />
+            </div>
           </label>
         </div>
         <div className="mt-6 flex justify-end gap-3">

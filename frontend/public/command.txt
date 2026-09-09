@@ -1,682 +1,123 @@
-You are working on my existing Expense Tracker PERN application.
+Fix the mobile responsiveness issue with all Category and Type dropdown/select fields in the application.
 
-The project already has:
+I have a mobile UI issue where opening a native <select> dropdown causes the options panel to overflow outside the form/modal and extend beyond the visible screen, as shown in the attached screenshot.
 
-* Backend: Node.js + Express + PostgreSQL + Prisma
-* Frontend: React 19 + TypeScript + Vite
-* Existing authentication and JWT/session architecture
-* Existing UserSettings model and User Settings APIs
-* Existing frontend settings page
-* Existing API/service architecture
-* Existing dashboard, transaction, category, and budget-related functionality
+This issue currently occurs in these 4 places:
 
-I need you to implement the actual functionality for these two settings:
+1. Transaction Creation Form
+   - Category field
+   - Type field
 
-1. **Email Notifications**
-2. **Budget Alerts**
+2. Category Creation Form
+   - Category field
+   - Type field
 
-Currently, the frontend only displays these as UI checkboxes:
-
-```tsx
-<section className="py-5" aria-labelledby="notifications-title">
-  <h2
-    id="notifications-title"
-    className="text-lg font-semibold text-[var(--text-primary)]"
-  >
-    {t("settings.notifications")}
-  </h2>
-
-  <div className="mt-4 space-y-3">
-    {(["emailNotifications", "budgetAlerts"] as const).map((key) => (
-      <label
-        key={key}
-        className="flex items-center justify-between gap-4 text-sm font-medium text-[var(--text-primary)]"
-      >
-        {t(`settings.${key}`)}
-
-        <input
-          type="checkbox"
-          checked={values[key]}
-          onChange={(event) =>
-            setValue(key, event.target.checked)
-          }
-          className="h-4 w-4 accent-[var(--primary)]"
-        />
-      </label>
-    ))}
-  </div>
-</section>
-```
-
-These currently have no real backend functionality.
-
-Your task is to implement this properly across the entire stack.
+GOAL:
+Make all four dropdowns fully mobile-friendly while preserving the existing desktop UI, colors, typography, spacing, animations, and overall design.
 
 IMPORTANT:
-Do not create a separate notification system if the existing architecture can cleanly support these settings through the existing UserSettings system.
-
-==================================================
-PHASE 1 — INSPECT THE EXISTING CODEBASE
-=======================================
-
-Before modifying anything, inspect the existing project.
-
-Identify:
-
-Backend:
-
-* Prisma UserSettings model
-* UserSettings migration/schema
-* User Settings controller
-* User Settings service
-* User Settings routes
-* User Settings validators
-* Authentication/user lookup logic
-* Existing transaction service
-* Existing budget-related logic/models
-* Existing email configuration/service, if any
-* Existing background jobs/cron jobs
-* Existing logger/error handling
-* Existing API response utilities
-
-Frontend:
-
-* Settings page/component
-* Settings state management
-* User settings API service
-* User settings TypeScript contracts/types
-* React Query queries/mutations
-* Query invalidation logic
-* Existing toast/error handling
-* Existing API client
-* Existing authentication context
-
-Do NOT duplicate existing functionality.
-
-Follow the existing architecture and naming conventions.
-
-==================================================
-PHASE 2 — USER SETTINGS DATABASE SUPPORT
-========================================
-
-Check whether the UserSettings database model already contains fields equivalent to:
-
-* emailNotifications
-* budgetAlerts
-
-If these fields already exist:
-
-* Reuse them.
-* Do not create duplicate fields.
-
-If they do not exist:
-
-* Add appropriate Boolean fields to UserSettings.
-
-Recommended defaults:
-
-emailNotifications: true
-budgetAlerts: true
-
-Use Prisma and create the required migration.
-
-Make sure existing users receive safe default values.
-
-The relationship must remain:
-
-User 1 ---- 1 UserSettings
-
-Do not create a separate table for these two boolean preferences unless there is a strong architectural reason.
-
-==================================================
-PHASE 3 — BACKEND SETTINGS API
-==============================
-
-Update the existing User Settings API so these values can be:
-
-* Retrieved
-* Updated
-* Persisted
-
-The existing GET settings endpoint should return:
-
-```json
-{
-  "emailNotifications": true,
-  "budgetAlerts": true
-}
-```
-
-or the equivalent structure already established by the project's API contracts.
-
-The existing update settings endpoint should accept these values.
-
-Example:
-
-```json
-{
-  "emailNotifications": false,
-  "budgetAlerts": true
-}
-```
-
-Only supplied fields should be updated if the existing API follows PATCH semantics.
-
-Do not break the existing settings fields such as:
-
-* currency
-* theme
-* language
-* date format
-* other existing preferences
-
-Update backend validation accordingly.
-
-Reject invalid values instead of silently accepting incorrect types.
-
-==================================================
-PHASE 4 — EMAIL NOTIFICATION ARCHITECTURE
-=========================================
-
-Determine whether the project already has an email service.
-
-If an email service already exists:
-
-* Reuse it.
-
-If no email service exists:
-
-* Create a clean email service abstraction.
-* Keep provider-specific implementation isolated.
-* Use environment variables for credentials/configuration.
-* Never hardcode email credentials.
-* Never store email provider credentials in the database.
-
-Example architecture:
-
-```text
-src/
-  services/
-    email.service.js
-```
-
-or follow the project's existing service structure.
-
-The email service should expose reusable functionality such as:
-
-```text
-sendEmail()
-sendBudgetAlert()
-```
-
-Do not tightly couple email sending directly to controllers.
-
-==================================================
-PHASE 5 — EMAIL NOTIFICATIONS FUNCTIONALITY
-===========================================
-
-The `emailNotifications` setting must actually control whether application emails are sent.
-
-Whenever the application is about to send a user notification email:
-
-1. Load the user's UserSettings.
-2. Check `emailNotifications`.
-3. If false:
-
-   * Do not send the email.
-   * Do not throw an error.
-4. If true:
-
-   * Send the email through the email service.
-
-Create a reusable helper/service for this instead of duplicating this condition throughout controllers.
-
-For example:
-
-```text
-shouldSendEmailNotification(userId)
-```
-
-or an equivalent clean service abstraction.
-
-The preference must be enforced on the backend.
-
-Do NOT rely only on the frontend checkbox.
-
-A user should still be protected from receiving notification emails even if they call the API directly.
-
-==================================================
-PHASE 6 — BUDGET ALERT FUNCTIONALITY
-====================================
-
-The `budgetAlerts` setting must have actual behavior.
-
-Inspect the existing budget/transaction/dashboard implementation and determine how spending/budget information is currently calculated.
-
-Implement budget alert detection using the existing domain logic.
-
-Do not invent a completely separate budget calculation if one already exists.
-
-The system should be capable of determining when a user's spending reaches an appropriate budget-alert threshold.
-
-If the project already has a configured threshold, reuse it.
-
-If there is currently no threshold mechanism, implement a reasonable configurable threshold using the existing architecture.
-
-Recommended default:
-
-* Alert when spending reaches 80% of the relevant budget.
-* Optionally send another alert when the budget reaches/exceeds 100%.
-
-However, first inspect the existing budget model and business rules. If the project already defines a different threshold, follow the existing rules instead.
-
-==================================================
-PHASE 7 — PREVENT DUPLICATE BUDGET ALERT EMAILS
-===============================================
-
-Do not send the same budget alert repeatedly every time a transaction is created after crossing the threshold.
-
-Implement duplicate-alert protection.
-
-For example:
-
-If a monthly budget is:
-
-$1,000
-
-and the user reaches:
-
-$800 → send 80% alert
-
-then:
-
-$820
-$850
-$900
-
-should NOT send another 80% email every time.
-
-Likewise, the 100% alert should be sent only once for that budget period.
-
-Use the existing database architecture where possible.
-
-If persistence is required to track alert delivery, add a clean model/table such as a budget alert/event record rather than storing temporary state in memory.
-
-The implementation must work correctly after server restarts and deployments.
-
-==================================================
-PHASE 8 — WHEN SHOULD BUDGET ALERTS RUN?
-========================================
-
-Determine the best trigger based on the existing application architecture.
-
-Prefer checking budget thresholds after relevant transaction mutations because a new expense can immediately cause a threshold to be crossed.
-
-For example:
-
-Create transaction
-↓
-Save transaction
-↓
-Recalculate relevant budget spending
-↓
-Check budget threshold
-↓
-Check budgetAlerts setting
-↓
-Check emailNotifications setting
-↓
-Send alert if required
-
-Do not block the transaction request unnecessarily if the email provider is slow.
-
-If appropriate for the existing architecture, use an asynchronous/background mechanism.
-
-Also consider budget updates/deletions if they can affect the alert state.
-
-==================================================
-PHASE 9 — FRONTEND SETTINGS
-===========================
-
-Update the existing frontend settings implementation.
-
-The current checkbox values must come from the backend UserSettings response.
-
-Do NOT maintain independent fake/default UI state.
-
-The flow should be:
-
-GET User Settings
-↓
-React Query
-↓
-Settings page
-↓
-Checkbox reflects backend value
-
-When the checkbox changes:
-
-Checkbox
-↓
-Mutation
-↓
-PATCH/PUT User Settings API
-↓
-Database
-↓
-React Query cache update/invalidation
-↓
-UI reflects persisted value
-
-Use the existing React Query architecture.
-
-Do not introduce another state-management library.
-
-==================================================
-PHASE 10 — FRONTEND UX
-======================
-
-Make the settings interaction production-ready.
-
-When changing:
-
-Email Notifications
-
-or:
-
-Budget Alerts
-
-provide appropriate UI feedback.
-
-Handle:
-
-* Loading state
-* Successful update
-* Failed update
-* API/network failure
-* Authentication/session expiry
-
-If the existing project has toast/notification components, reuse them.
-
-If an update fails:
-
-* Restore the previous checkbox state.
-* Show an appropriate error message.
-
-Avoid making the UI appear successfully updated when the backend rejected the change.
-
-If optimistic updates are already used by the project's settings architecture, follow that architecture correctly and rollback on failure.
-
-==================================================
-PHASE 11 — TYPESCRIPT CONTRACTS
-===============================
-
-Update all frontend TypeScript contracts/types/interfaces related to UserSettings.
-
-Make sure:
-
-```ts
-emailNotifications: boolean;
-budgetAlerts: boolean;
-```
-
-are represented correctly.
-
-Remove any temporary/mock typing that treats these values as frontend-only state.
-
-Ensure there are no TypeScript errors.
-
-==================================================
-PHASE 12 — API SERVICE
-======================
-
-Use the existing User Settings service.
-
-Do not call Axios directly from the Settings component.
-
-For example, follow the existing architecture:
-
-```text
-SettingsPage
-   ↓
-useQuery/useMutation
-   ↓
-settings.service.ts
-   ↓
-api/client.ts
-   ↓
-Backend
-```
-
-Do not create another Axios client.
-
-Use the project's canonical API client.
-
-==================================================
-PHASE 13 — SECURITY
-===================
-
-Make sure users can only read/update their own settings.
-
-Do not trust a userId supplied by the frontend if the backend can obtain it from the authenticated JWT/session.
-
-The backend should derive the current user from authentication middleware.
-
-Ensure:
-
-* Authorization is enforced.
-* Validation is enforced.
-* Users cannot modify another user's settings.
-* Email preferences cannot be changed for another account.
-
-==================================================
-PHASE 14 — ERROR HANDLING AND LOGGING
-=====================================
-
-Follow the project's existing:
-
-* error middleware
-* response utilities
-* logger
-* HTTP status conventions
-
-Do not expose:
-
-* email provider credentials
-* SMTP/API secrets
-* internal stack traces
-* sensitive configuration
-
-Log useful email/budget-alert failures using the existing logger.
-
-A failed notification email should not incorrectly cause a successful transaction to become failed unless the existing business requirements explicitly require that behavior.
-
-==================================================
-PHASE 15 — ENVIRONMENT CONFIGURATION
-====================================
-
-If email sending is not already configured, add environment variables using the existing environment configuration pattern.
-
-For example:
-
-```env
-EMAIL_PROVIDER=
-EMAIL_HOST=
-EMAIL_PORT=
-EMAIL_USER=
-EMAIL_PASSWORD=
-EMAIL_FROM=
-```
-
-Use the appropriate variables for the selected email provider.
-
-Do NOT commit actual credentials.
-
-Update `.env.example` if the project has one.
-
-Make sure production deployment configuration can provide these values through environment variables.
-
-==================================================
-PHASE 16 — TESTING
-==================
-
-Add/update backend tests for:
-
-1. User settings return emailNotifications.
-2. User settings return budgetAlerts.
-3. User can enable email notifications.
-4. User can disable email notifications.
-5. User can enable budget alerts.
-6. User can disable budget alerts.
-7. Settings persist after logout/login.
-8. One user cannot modify another user's settings.
-9. Invalid boolean values are rejected.
-10. Email notification is not sent when emailNotifications=false.
-11. Email notification is sent when emailNotifications=true.
-12. Budget alert is not sent when budgetAlerts=false.
-13. Budget alert is sent when budgetAlerts=true and threshold is crossed.
-14. Duplicate budget alerts are prevented.
-15. 100% budget alert behavior works correctly if implemented.
-16. Email failure is handled safely.
-17. Existing settings functionality still works.
-
-Frontend tests/checks should cover:
-
-1. Backend settings populate the checkboxes.
-2. Changing Email Notifications persists.
-3. Changing Budget Alerts persists.
-4. Refreshing the page retains the correct values.
-5. Failed mutation restores the previous value.
-6. Loading state works correctly.
-7. No TypeScript errors.
-
-==================================================
-PHASE 17 — API/DOCUMENTATION
-============================
-
-Update Swagger/OpenAPI documentation if the project already uses Swagger.
-
-Document:
-
-* emailNotifications
-* budgetAlerts
-* GET settings response
-* UPDATE settings request/response
-
-Keep the API documentation consistent with the actual implementation.
-
-==================================================
-PHASE 18 — DATABASE/MIGRATION SAFETY
-====================================
-
-Before changing Prisma schema:
-
-Inspect the existing schema and migrations.
-
-Do not destroy existing data.
-
-If fields need to be added:
-
-* Use safe defaults.
-* Generate a proper Prisma migration.
-* Ensure existing users remain valid.
-
-Do not use destructive database commands.
-
-==================================================
-PHASE 19 — FINAL ARCHITECTURE CHECK
-===================================
-
-After implementation, verify the final flow:
-
-USER
-↓
-Settings Page
-↓
-React Query
-↓
-settings.service.ts
-↓
-api/client.ts
-↓
-User Settings API
-↓
-UserSettings Service
-↓
-PostgreSQL
-
-For budget alerts:
-
-Transaction Creation
-↓
-Transaction Service
-↓
-Budget Calculation
-↓
-Threshold Detection
-↓
-UserSettings
-├── budgetAlerts?
-│       ↓
-│    yes
-│
-└── emailNotifications?
-↓
-yes
-↓
-Email Service
-↓
-Email Provider
-
-The frontend must NOT be responsible for enforcing notification preferences.
-
-The backend must be the source of truth.
-
-==================================================
-IMPORTANT IMPLEMENTATION RULES
-==============================
-
-1. First inspect the existing codebase before changing anything.
-2. Reuse existing UserSettings infrastructure.
-3. Reuse existing React Query architecture.
-4. Reuse the canonical Axios client.
-5. Reuse existing authentication.
-6. Reuse existing error handling and response utilities.
-7. Reuse existing logger.
-8. Reuse existing budget/transaction calculations.
-9. Do not create duplicate API clients.
-10. Do not create duplicate settings systems.
-11. Do not hardcode email credentials.
-12. Do not trust frontend-only notification settings.
-13. Do not break existing settings.
-14. Do not break existing transaction behavior.
-15. Do not introduce unnecessary dependencies.
-16. Keep the implementation production-ready and maintainable.
-17. Follow the existing project's naming and folder conventions.
-18. Do not rewrite unrelated parts of the application.
-
-==================================================
-FINAL DELIVERABLE
-=================
-
-After completing the implementation:
-
-1. List every file created.
-2. List every file modified.
-3. Explain the database changes.
-4. Explain the backend API changes.
-5. Explain the email notification flow.
-6. Explain the budget alert flow.
-7. Explain duplicate-alert prevention.
-8. Explain the frontend React Query integration.
-9. Explain environment variables required.
-10. Explain how to test the complete feature.
-11. Run the relevant backend/frontend tests.
-12. Run TypeScript/build/lint checks where available.
-13. Report any remaining issues clearly.
-
-Most importantly:
-
-Do not just make the checkboxes visually functional.
-
-Implement the complete end-to-end functionality so that **Email Notifications** and **Budget Alerts** are real persisted settings with real backend behavior and frontend integration.
+Do not implement a one-off fix for only one component. Find the shared/reusable select/dropdown component or common styling used by these fields and fix the underlying implementation so the behavior is consistent everywhere.
+
+Requirements:
+
+1. MOBILE RESPONSIVENESS
+   - On small screens, every select/dropdown must remain within the available viewport width.
+   - The select element itself must never overflow its parent container.
+   - Prevent horizontal page scrolling caused by these fields.
+   - Use:
+     - width: 100%
+     - max-width: 100%
+     - min-width: 0
+     - box-sizing: border-box
+   where appropriate.
+   - Make sure the parent form/modal/container also uses responsive width constraints.
+
+2. DROPDOWN OPTIONS
+   - Long category names such as "Uncategorized", "Entertainment", etc. must not break the mobile layout.
+   - Ensure option text does not force the select/container to become wider than the screen.
+   - If native <select> behavior cannot reliably control the opened options popup on mobile browsers, do NOT fight the browser's native popup with excessive CSS.
+   - In that case, implement a lightweight accessible custom dropdown/select component specifically for mobile/responsive behavior while keeping the normal/native-looking experience on desktop.
+   - The custom dropdown must support keyboard navigation, focus states, Escape to close, Enter/Space selection, and proper ARIA attributes.
+
+3. MODAL / FORM CONTAINMENT
+   - Check the Transaction Creation modal/form and Category Creation modal/form.
+   - Ensure dropdowns cannot visually force the modal wider than the viewport.
+   - Add appropriate overflow handling where necessary.
+   - Do not simply use overflow:hidden as the only fix if it causes dropdown options to become inaccessible.
+
+4. CATEGORY FIELD
+   - Preserve all existing category options and functionality.
+   - Global categories and user-created categories must continue working.
+   - Do not change API contracts, backend logic, database models, or category values.
+
+5. TYPE FIELD
+   - Preserve the existing transaction/category type values and behavior.
+   - Do not change enum values or backend payloads.
+
+6. DESKTOP
+   - Do NOT unnecessarily redesign the desktop version.
+   - Existing desktop appearance should remain visually unchanged.
+   - The fix should primarily improve tablet/mobile responsiveness.
+
+7. RESPONSIVE BREAKPOINTS
+   Test at least:
+   - 320px width
+   - 360px width
+   - 375px width
+   - 390px width
+   - 414px width
+   - 768px width
+   - normal desktop width
+
+8. CHECK FOR DUPLICATE IMPLEMENTATIONS
+   Search the entire frontend for:
+   - <select
+   - category selects
+   - type selects
+   - reusable Select components
+   - Transaction creation form
+   - Category creation form
+
+   Identify whether these four fields share a component or styling.
+   If there is a shared component, fix it there instead of duplicating CSS.
+
+9. VISUAL REQUIREMENTS
+   Keep the existing design system:
+   - Existing primary color
+   - Existing CSS variables
+   - Existing Tailwind/CSS architecture
+   - Existing border radius
+   - Existing typography
+   - Existing focus/hover states
+   - Existing modal design
+   - Existing animations
+
+10. ACCESSIBILITY
+   - Preserve proper labels for every select.
+   - Ensure keyboard accessibility.
+   - Ensure visible focus states.
+   - Do not remove native accessibility behavior unless replacing it with an equivalent accessible implementation.
+   - Ensure touch targets are comfortable on mobile.
+
+11. VALIDATION
+   After implementation:
+   - Run TypeScript/type checking.
+   - Run frontend lint/tests if available.
+   - Run production build.
+   - Verify all four dropdowns.
+   - Verify category selection still sends the correct category ID/value.
+   - Verify type selection still sends the correct enum/value.
+   - Verify create/edit flows still work.
+   - Verify there is no horizontal overflow on mobile.
+
+IMPORTANT:
+Do not modify backend APIs, database schema, authentication, category logic, or transaction logic unless absolutely required. This is a frontend responsive UI/UX fix.
+
+Before making changes, inspect the existing implementation and determine the shared/root cause. Then implement the cleanest reusable solution rather than adding separate hacks to each of the four fields.
+
+At the end, provide:
+1. Root cause
+2. Files/components changed
+3. What responsive solution was implemented
+4. Validation/tests performed
+5. Confirmation that all 4 dropdowns were fixed

@@ -4,6 +4,7 @@ import type { Category } from "../../../domain/models/category";
 import type { CreateTransactionRequest } from "../../../domain/contracts/transaction.contracts";
 import type { TransactionType } from "../../../domain/enums/transaction-type";
 import type { Transaction } from "../../../domain/models/transaction";
+import ResponsiveSelect from "../../../components/ui/ResponsiveSelect";
 
 type TransactionFormProps = {
   categories: Category[];
@@ -86,7 +87,7 @@ function TransactionForm({
     >
       <form
         onSubmit={handleSubmit}
-        className="max-h-full w-full overflow-y-auto rounded-t-lg bg-[var(--surface)] p-5 sm:max-w-lg sm:rounded-lg"
+        className="max-h-full w-full max-w-full overflow-y-auto overflow-x-hidden rounded-t-lg bg-[var(--surface)] p-5 box-border sm:max-w-lg sm:rounded-lg"
       >
         <div className="mb-5 flex items-center justify-between gap-4">
           <h2 id="transaction-form-title" className="text-lg font-semibold">
@@ -106,44 +107,49 @@ function TransactionForm({
           </p>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-medium">
-            Type
-            <select
-              value={values.type}
-              onChange={(event) => {
-                const type = event.target.value as TransactionType;
-                setValues((current) => ({
-                  ...current,
-                  type,
-                  categoryId: categories.some(
-                    (category) =>
-                      category.categoryId === current.categoryId &&
-                      category.type === type,
-                  )
-                    ? current.categoryId
-                    : "",
-                }));
-              }}
-              className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] p-2 font-normal text-[var(--text-primary)]"
-            >
-              <option value="EXPENSE">Expense</option>
-              <option value="INCOME">Income</option>
-            </select>
+          <label className="block min-w-0 text-sm font-medium">
+            <span className="block">Type</span>
+            <div className="mt-1 min-w-0 w-full max-w-full box-border">
+              <ResponsiveSelect
+                label="Transaction type"
+                value={values.type}
+                options={[
+                  { value: "EXPENSE", label: "Expense" },
+                  { value: "INCOME", label: "Income" },
+                ]}
+                onChange={(type) => {
+                  const nextType = type as TransactionType;
+                  setValues((current) => ({
+                    ...current,
+                    type: nextType,
+                    categoryId: categories.some(
+                      (category) =>
+                        category.categoryId === current.categoryId &&
+                        category.type === nextType,
+                    )
+                      ? current.categoryId
+                      : "",
+                  }));
+                }}
+                className="w-full"
+              />
+            </div>
           </label>
-          <label className="text-sm font-medium">
-            Category
-            <select
-              value={values.categoryId}
-              onChange={(event) => setValue("categoryId", event.target.value)}
-              className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] p-2 font-normal text-[var(--text-primary)]"
-            >
-              <option value="">Select a category</option>
-              {matchingCategories.map((category) => (
-                <option key={category.categoryId} value={category.categoryId}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+          <label className="block min-w-0 text-sm font-medium">
+            <span className="block">Category</span>
+            <div className="mt-1 min-w-0 w-full max-w-full box-border">
+              <ResponsiveSelect
+                label="Category"
+                value={values.categoryId}
+                placeholder="Select a category"
+                options={matchingCategories.map((category) => ({
+                  value: category.categoryId,
+                  label: category.name,
+                }))}
+                onChange={(categoryId) => setValue("categoryId", categoryId)}
+                className="w-full"
+              />
+            </div>
           </label>
           <label className="text-sm font-medium sm:col-span-2">
             Title
