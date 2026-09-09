@@ -1,64 +1,62 @@
-I have a Node.js + Express + Prisma + PostgreSQL backend, and my production database is hosted on Neon. I already have a Prisma seed script that creates my global/default categories.
+Fix my Prisma production seeding deployment issue.
 
-The issue is that I ran `npx prisma db seed` locally, so the categories exist in my local/development database, but they are missing from the production Neon database after deployment.
+My stack is Node.js + Express + TypeScript/JavaScript + Prisma + PostgreSQL, and my production database is Neon. I deploy the backend on Render.
 
-Please inspect my existing project and implement a production-ready solution for Prisma seeding.
+The Render logs show:
+
+Error: Command failed with ENOENT: tsx prisma/seed.ts
+spawn tsx ENOENT
+
+The current production command is:
+
+npx prisma generate && npx prisma migrate deploy && npx prisma db seed && node server.js
+
+Prisma successfully loads the schema, but `prisma db seed` fails because Render cannot find the `tsx` executable.
+
+Please inspect my existing project before making changes, especially:
+- package.json
+- prisma.config.ts
+- prisma/schema.prisma
+- prisma/seed.ts
+- tsconfig.json
+- Render build/start configuration if available
+
+Implement the cleanest production-ready fix.
 
 Requirements:
 
-1. Inspect my existing:
+1. Determine why `tsx` is unavailable during the Render deployment.
+2. If `tsx` is required by the existing `prisma/seed.ts`, make sure `tsx` is correctly available in the production environment.
+3. Prefer adding `tsx` to the appropriate `dependencies`/`devDependencies` based on how Render installs packages. Do not blindly change dependency configuration.
+4. Alternatively, if the project architecture allows it, convert the seed to a production-compatible JavaScript seed without introducing unnecessary dependencies. Choose the cleaner solution based on the existing project.
+5. Keep Prisma's existing seed configuration compatible with the Prisma version already installed.
+6. Make the seed idempotent. Running `npx prisma db seed` multiple times must NOT create duplicate global categories.
+7. Use Prisma `upsert` or another appropriate approach based on the existing Category schema and unique constraints.
+8. Do not delete, reset, or overwrite existing user-created/custom categories.
+9. Do not use `prisma migrate reset` or any destructive database command.
+10. Keep the existing Neon production DATABASE_URL supplied through Render environment variables. Never hardcode credentials.
+11. Keep this production command working:
 
-   * `prisma/schema.prisma`
-   * Prisma seed file (`prisma/seed.js`, `prisma/seed.ts`, or whatever is configured)
-   * `package.json`
-   * `.env` / environment configuration
-   * Prisma configuration
-   * deployment configuration
+npx prisma generate && npx prisma migrate deploy && npx prisma db seed && node server.js
 
-2. DO NOT hardcode or expose any production Neon credentials.
+12. Make sure `node server.js` still starts the Express server normally after successful seeding.
+13. Do not modify unrelated application functionality.
 
-3. Ensure the existing seed script correctly creates all global categories in the production database.
+After making the changes, verify:
+- Prisma generate works
+- Prisma migrate deploy works
+- Prisma db seed works
+- The seed can run multiple times without duplicates
+- The application starts successfully
 
-4. Make the seed script IDEMPOTENT:
-
-   * Running the seed multiple times must not create duplicate global categories.
-   * Use `upsert` or another appropriate Prisma-safe approach based on the existing schema and unique constraints.
-   * Do not modify or delete existing user-created/custom categories.
-   * Only seed the intended global/default categories.
-
-5. Ensure Prisma migrations are production-safe:
-
-   * Use `npx prisma migrate deploy` for production migrations.
-   * Do not use `prisma migrate dev` in production.
-
-6. Configure the deployment process so the production Neon database can be initialized correctly.
-
-   * If appropriate for this project's architecture, update the Render/deployment build/start configuration to run:
-     `npx prisma generate`
-     `npx prisma migrate deploy`
-     `npx prisma db seed`
-   * Do not blindly run destructive commands such as `prisma migrate reset`.
-   * Do not seed the database on every deployment if that could be unsafe; only do so if the seed is fully idempotent.
-
-7. Make sure Prisma's seed command is correctly configured in `package.json` / Prisma configuration according to the Prisma version already used by this project.
-
-8. Verify that the Category schema and seed logic correctly distinguish:
-
-   * Global categories
-   * User-specific/custom categories
-   * The default `Uncategorized` category, if it already exists in the project
-
-9. Do not change unrelated backend functionality or database models.
-
-10. After implementation, provide:
-
-* Exact files changed
-* Exact commands I need to run
-* Exact Render deployment/build configuration changes, if required
-* How I can verify the categories exist in my Neon production database
-* Any environment variables that must be configured in Render
+Finally, tell me exactly:
+- Which files you changed
+- What you changed
+- Whether `tsx` was added/moved
+- What Render Build Command should be
+- What Render Start Command should be
+- Any environment variables required
+- The exact command I should run locally to test the seed before redeploying
 
 IMPORTANT:
-The production `DATABASE_URL` must come from the Render environment variables and point to my production Neon database. Never replace it with a local database URL and never commit credentials to Git.
-
-Before making changes, inspect the existing project structure and preserve the current architecture and conventions. Do not create a new seeding system if an existing Prisma seed system can be safely fixed.
+Do not use a local database for production seeding. The production seed must run against the Neon database through Render's DATABASE_URL.

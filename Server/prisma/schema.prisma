@@ -109,8 +109,6 @@ model Category {
 
   transactions Transaction[]
   budgets      Budget[]
-
-  @@unique([userId, name, type])
 }
 
 // ======================================================

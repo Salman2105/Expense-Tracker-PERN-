@@ -48,7 +48,6 @@
     "nodemon": "^3.1.14",
     "prisma": "^7.9.1",
     "supertest": "^7.2.2",
-    "tsx": "^4.23.12",
     "typescript": "^7.0.2"
   },
   "description": "Expense Tracker backend",

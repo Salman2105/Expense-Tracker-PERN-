@@ -1,21 +1,21 @@
-import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+require("dotenv/config");
+const { PrismaClient } = require("@prisma/client");
+const { PrismaPg } = require("@prisma/adapter-pg");
 
 const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!,
+  connectionString: process.env.DATABASE_URL,
 });
 
 const prisma = new PrismaClient({ adapter });
 
 const globalCategories = [
-  { name: "Food", icon: "food", type: "EXPENSE" as const },
-  { name: "Transport", icon: "transport", type: "EXPENSE" as const },
-  { name: "Shopping", icon: "shopping", type: "EXPENSE" as const },
-  { name: "Bills", icon: "bills", type: "EXPENSE" as const },
-  { name: "Entertainment", icon: "entertainment", type: "EXPENSE" as const },
-  { name: "Salary", icon: "salary", type: "INCOME" as const },
-  { name: "Uncategorized", icon: "Uncategorized", type: "EXPENSE" as const },
+  { name: "Food", icon: "food", type: "EXPENSE" },
+  { name: "Transport", icon: "transport", type: "EXPENSE" },
+  { name: "Shopping", icon: "shopping", type: "EXPENSE" },
+  { name: "Bills", icon: "bills", type: "EXPENSE" },
+  { name: "Entertainment", icon: "entertainment", type: "EXPENSE" },
+  { name: "Salary", icon: "salary", type: "INCOME" },
+  { name: "Uncategorized", icon: "Uncategorized", type: "EXPENSE" },
 ];
 
 async function main() {
@@ -39,6 +39,7 @@ async function main() {
           userId: null,
         },
       });
+
       console.log(`Ensured global category: ${category.name}`);
       continue;
     }
