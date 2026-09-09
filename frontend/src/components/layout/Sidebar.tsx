@@ -116,11 +116,11 @@ function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         <div className="relative shrink-0 border-t border-white/10 p-3">
           {isUserMenuOpen && (
             <div className="absolute bottom-full left-3 right-3 z-50 mb-2 rounded-lg border border-white/10 bg-[var(--sidebar-hover)] py-1 shadow-xl" role="menu">
-              <button type="button" onClick={() => { setIsUserMenuOpen(false); navigate("/profile"); }} className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-[var(--sidebar-text)] transition-colors hover:bg-[var(--sidebar)] hover:text-white" role="menuitem">
+              <button type="button" onClick={() => { setIsUserMenuOpen(false); onClose?.(); navigate("/profile"); }} className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-[var(--sidebar-text)] transition-colors hover:bg-[var(--sidebar)] hover:text-white" role="menuitem">
                 <UserRound size={16} aria-hidden="true" />
                 {t("common.profile")}
               </button>
-              <button type="button" onClick={() => { setIsUserMenuOpen(false); navigate("/settings"); }} className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-[var(--sidebar-text)] transition-colors hover:bg-[var(--sidebar)] hover:text-white" role="menuitem">
+              <button type="button" onClick={() => { setIsUserMenuOpen(false); onClose?.(); navigate("/settings"); }} className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-[var(--sidebar-text)] transition-colors hover:bg-[var(--sidebar)] hover:text-white" role="menuitem">
                 <Settings size={16} aria-hidden="true" />
                 {t("common.settings")}
               </button>

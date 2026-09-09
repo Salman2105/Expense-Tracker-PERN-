@@ -1,123 +1,64 @@
-Fix the mobile responsiveness issue with all Category and Type dropdown/select fields in the application.
+I have a Node.js + Express + Prisma + PostgreSQL backend, and my production database is hosted on Neon. I already have a Prisma seed script that creates my global/default categories.
 
-I have a mobile UI issue where opening a native <select> dropdown causes the options panel to overflow outside the form/modal and extend beyond the visible screen, as shown in the attached screenshot.
+The issue is that I ran `npx prisma db seed` locally, so the categories exist in my local/development database, but they are missing from the production Neon database after deployment.
 
-This issue currently occurs in these 4 places:
-
-1. Transaction Creation Form
-   - Category field
-   - Type field
-
-2. Category Creation Form
-   - Category field
-   - Type field
-
-GOAL:
-Make all four dropdowns fully mobile-friendly while preserving the existing desktop UI, colors, typography, spacing, animations, and overall design.
-
-IMPORTANT:
-Do not implement a one-off fix for only one component. Find the shared/reusable select/dropdown component or common styling used by these fields and fix the underlying implementation so the behavior is consistent everywhere.
+Please inspect my existing project and implement a production-ready solution for Prisma seeding.
 
 Requirements:
 
-1. MOBILE RESPONSIVENESS
-   - On small screens, every select/dropdown must remain within the available viewport width.
-   - The select element itself must never overflow its parent container.
-   - Prevent horizontal page scrolling caused by these fields.
-   - Use:
-     - width: 100%
-     - max-width: 100%
-     - min-width: 0
-     - box-sizing: border-box
-   where appropriate.
-   - Make sure the parent form/modal/container also uses responsive width constraints.
+1. Inspect my existing:
 
-2. DROPDOWN OPTIONS
-   - Long category names such as "Uncategorized", "Entertainment", etc. must not break the mobile layout.
-   - Ensure option text does not force the select/container to become wider than the screen.
-   - If native <select> behavior cannot reliably control the opened options popup on mobile browsers, do NOT fight the browser's native popup with excessive CSS.
-   - In that case, implement a lightweight accessible custom dropdown/select component specifically for mobile/responsive behavior while keeping the normal/native-looking experience on desktop.
-   - The custom dropdown must support keyboard navigation, focus states, Escape to close, Enter/Space selection, and proper ARIA attributes.
+   * `prisma/schema.prisma`
+   * Prisma seed file (`prisma/seed.js`, `prisma/seed.ts`, or whatever is configured)
+   * `package.json`
+   * `.env` / environment configuration
+   * Prisma configuration
+   * deployment configuration
 
-3. MODAL / FORM CONTAINMENT
-   - Check the Transaction Creation modal/form and Category Creation modal/form.
-   - Ensure dropdowns cannot visually force the modal wider than the viewport.
-   - Add appropriate overflow handling where necessary.
-   - Do not simply use overflow:hidden as the only fix if it causes dropdown options to become inaccessible.
+2. DO NOT hardcode or expose any production Neon credentials.
 
-4. CATEGORY FIELD
-   - Preserve all existing category options and functionality.
-   - Global categories and user-created categories must continue working.
-   - Do not change API contracts, backend logic, database models, or category values.
+3. Ensure the existing seed script correctly creates all global categories in the production database.
 
-5. TYPE FIELD
-   - Preserve the existing transaction/category type values and behavior.
-   - Do not change enum values or backend payloads.
+4. Make the seed script IDEMPOTENT:
 
-6. DESKTOP
-   - Do NOT unnecessarily redesign the desktop version.
-   - Existing desktop appearance should remain visually unchanged.
-   - The fix should primarily improve tablet/mobile responsiveness.
+   * Running the seed multiple times must not create duplicate global categories.
+   * Use `upsert` or another appropriate Prisma-safe approach based on the existing schema and unique constraints.
+   * Do not modify or delete existing user-created/custom categories.
+   * Only seed the intended global/default categories.
 
-7. RESPONSIVE BREAKPOINTS
-   Test at least:
-   - 320px width
-   - 360px width
-   - 375px width
-   - 390px width
-   - 414px width
-   - 768px width
-   - normal desktop width
+5. Ensure Prisma migrations are production-safe:
 
-8. CHECK FOR DUPLICATE IMPLEMENTATIONS
-   Search the entire frontend for:
-   - <select
-   - category selects
-   - type selects
-   - reusable Select components
-   - Transaction creation form
-   - Category creation form
+   * Use `npx prisma migrate deploy` for production migrations.
+   * Do not use `prisma migrate dev` in production.
 
-   Identify whether these four fields share a component or styling.
-   If there is a shared component, fix it there instead of duplicating CSS.
+6. Configure the deployment process so the production Neon database can be initialized correctly.
 
-9. VISUAL REQUIREMENTS
-   Keep the existing design system:
-   - Existing primary color
-   - Existing CSS variables
-   - Existing Tailwind/CSS architecture
-   - Existing border radius
-   - Existing typography
-   - Existing focus/hover states
-   - Existing modal design
-   - Existing animations
+   * If appropriate for this project's architecture, update the Render/deployment build/start configuration to run:
+     `npx prisma generate`
+     `npx prisma migrate deploy`
+     `npx prisma db seed`
+   * Do not blindly run destructive commands such as `prisma migrate reset`.
+   * Do not seed the database on every deployment if that could be unsafe; only do so if the seed is fully idempotent.
 
-10. ACCESSIBILITY
-   - Preserve proper labels for every select.
-   - Ensure keyboard accessibility.
-   - Ensure visible focus states.
-   - Do not remove native accessibility behavior unless replacing it with an equivalent accessible implementation.
-   - Ensure touch targets are comfortable on mobile.
+7. Make sure Prisma's seed command is correctly configured in `package.json` / Prisma configuration according to the Prisma version already used by this project.
 
-11. VALIDATION
-   After implementation:
-   - Run TypeScript/type checking.
-   - Run frontend lint/tests if available.
-   - Run production build.
-   - Verify all four dropdowns.
-   - Verify category selection still sends the correct category ID/value.
-   - Verify type selection still sends the correct enum/value.
-   - Verify create/edit flows still work.
-   - Verify there is no horizontal overflow on mobile.
+8. Verify that the Category schema and seed logic correctly distinguish:
+
+   * Global categories
+   * User-specific/custom categories
+   * The default `Uncategorized` category, if it already exists in the project
+
+9. Do not change unrelated backend functionality or database models.
+
+10. After implementation, provide:
+
+* Exact files changed
+* Exact commands I need to run
+* Exact Render deployment/build configuration changes, if required
+* How I can verify the categories exist in my Neon production database
+* Any environment variables that must be configured in Render
 
 IMPORTANT:
-Do not modify backend APIs, database schema, authentication, category logic, or transaction logic unless absolutely required. This is a frontend responsive UI/UX fix.
+The production `DATABASE_URL` must come from the Render environment variables and point to my production Neon database. Never replace it with a local database URL and never commit credentials to Git.
 
-Before making changes, inspect the existing implementation and determine the shared/root cause. Then implement the cleanest reusable solution rather than adding separate hacks to each of the four fields.
-
-At the end, provide:
-1. Root cause
-2. Files/components changed
-3. What responsive solution was implemented
-4. Validation/tests performed
-5. Confirmation that all 4 dropdowns were fixed
+Before making changes, inspect the existing project structure and preserve the current architecture and conventions. Do not create a new seeding system if an existing Prisma seed system can be safely fixed.

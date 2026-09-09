@@ -41,7 +41,7 @@ const globalCategories = [
     icon: "salary",
     type: "INCOME" as const,
   },
-    {
+  {
     name: "Uncategorized",
     icon: "Uncategorized",
     type: "EXPENSE" as const,
@@ -50,21 +50,20 @@ const globalCategories = [
 
 async function main() {
   for (const category of globalCategories) {
-    const existingCategory = await prisma.category.findFirst({
+    await prisma.category.upsert({
       where: {
-        name: category.name,
-        userId: null,
-        isDefault: true,
+        userId_name_type: {
+          userId: null,
+          name: category.name,
+          type: category.type,
+        },
       },
-    });
-
-    if (existingCategory) {
-      console.log(`Already exists: ${category.name}`);
-      continue;
-    }
-
-    await prisma.category.create({
-      data: {
+      update: {
+        icon: category.icon,
+        isDefault: true,
+        userId: null,
+      },
+      create: {
         name: category.name,
         icon: category.icon,
         type: category.type,
@@ -73,7 +72,7 @@ async function main() {
       },
     });
 
-    console.log(`Created: ${category.name}`);
+    console.log(`Ensured global category: ${category.name}`);
   }
 }
 

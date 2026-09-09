@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 
+import ResponsiveSelect from "../../../components/ui/ResponsiveSelect";
 import type { UpdateUserSettingsRequest } from "../../../domain/contracts/user-settings.contracts";
 import { CURRENCIES, type CurrencyCode } from "../../../domain/enums/currency";
 import { LANGUAGES, type LanguageCode } from "../../../domain/enums/language";
@@ -83,17 +84,39 @@ function SettingsForm({ settings, isSubmitting, onSubmit }: SettingsFormProps) {
       <section className="settings-form__section" aria-labelledby="preferences-title">
         <h2 id="preferences-title" className="settings-section-title">{t("settings.preferences")}</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <label className="settings-field" htmlFor="preferred-currency">
-            {t("settings.preferredCurrency")}
-            <select id="preferred-currency" value={values.preferredCurrency} onChange={(event) => setValue("preferredCurrency", event.target.value as CurrencyCode)} className="settings-select">
-              {CURRENCIES.map(({ code, name }) => <option key={code} value={code}>{name} ({code})</option>)}
-            </select>
+          <label className="settings-field min-w-0 max-w-full box-border" htmlFor="preferred-currency">
+            <span className="block">{t("settings.preferredCurrency")}</span>
+            <div className="mt-1 min-w-0 w-full max-w-full box-border">
+              <ResponsiveSelect
+                label={t("settings.preferredCurrency")}
+                value={values.preferredCurrency}
+                options={CURRENCIES.map(({ code, name }) => ({
+                  value: code,
+                  label: `${name} (${code})`,
+                }))}
+                onChange={(currency) => setValue("preferredCurrency", currency as CurrencyCode)}
+                className="w-full"
+              />
+            </div>
           </label>
-          <label className="settings-field" htmlFor="language">
-            {t("settings.language")}
-            <select id="language" value={values.language} onChange={(event) => { const language = event.target.value as LanguageCode; setValue("language", language); setLanguage(language); }} className="settings-select">
-              {LANGUAGES.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
-            </select>
+          <label className="settings-field min-w-0 max-w-full box-border" htmlFor="language">
+            <span className="block">{t("settings.language")}</span>
+            <div className="mt-1 min-w-0 w-full max-w-full box-border">
+              <ResponsiveSelect
+                label={t("settings.language")}
+                value={values.language}
+                options={LANGUAGES.map(({ code, name }) => ({
+                  value: code,
+                  label: name,
+                }))}
+                onChange={(language) => {
+                  const nextLanguage = language as LanguageCode;
+                  setValue("language", nextLanguage);
+                  setLanguage(nextLanguage);
+                }}
+                className="w-full"
+              />
+            </div>
           </label>
         </div>
       </section>
